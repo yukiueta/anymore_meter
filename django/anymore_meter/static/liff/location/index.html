@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>入退場管理</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <style>
+        .container {
+            max-width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .btn-lg {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2>Anymore施工管理</h2>
+            <h4>位置情報による入退場登録</h4>
+        </div>
+        
+        <div id="loading" class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <p>位置情報を取得中...</p>
+        </div>
+
+        <div id="content" class="d-none">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title" id="customerName">案件名</h5>
+                    <p class="card-text" id="scheduleItemName">工程名</p>
+                    <div class="text-muted mb-3" id="actionType">アクション種別</div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">現在の位置情報</h5>
+                    <p class="card-text" id="locationInfo">位置情報を取得中...</p>
+                    <div id="map" style="height: 200px; width: 100%;"></div>
+                </div>
+            </div>
+
+            <button id="btnSubmit" class="btn btn-primary btn-lg">登録する</button>
+            <button id="btnCancel" class="btn btn-secondary btn-lg">キャンセル</button>
+        </div>
+
+        <div id="error" class="alert alert-danger d-none" role="alert">
+            エラーが発生しました。もう一度お試しください。
+        </div>
+    </div>
+
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap" async defer></script>
+    
+    <script>
+        // グローバル変数
+        let params = {};
+        let latitude = null;
+        let longitude = null;
+        let address = null;
+        let map = null;
+        let marker = null;
+        
+        // パラメータを解析
+        function getParams() {
+            const url = new URL(window.location.href);
+            params = {
+                actionType: url.searchParams.get('actionType'),
+                customerId: url.searchParams.get('customerId'),
+                scheduleId: url.searchParams.get('scheduleId'),
+                token: url.searchParams.get('token')
+            };
+        }
+
+        // マップの初期化
+        function initMap() {
+            // マップ表示用の初期位置（東京タワー）
+            const initialPos = { lat: 35.6586, lng: 139.7454 };
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: initialPos,
+                zoom: 15,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+            
+            marker = new google.maps.Marker({
+                position: initialPos,
+                map: map,
+                title: '現在地'
+            });
+        }
+
+        // LIFFの初期化
+        async function initializeLiff() {
+            try {
+                // LIFFの初期化（YOUR_LIFF_ID は実際のLIFF IDに置き換える）
+                await liff.init({ liffId: 'YOUR_LIFF_ID' });
+                
+                // パラメータの取得
+                getParams();
+                
+                // ページ情報の設定
+                document.getElementById('customerName').innerText = `案件 ID: ${params.customerId}`;
+                document.getElementById('scheduleItemName').innerText = `工程 ID: ${params.scheduleId}`;
+                document.getElementById('actionType').innerText = params.actionType === 'entry' ? '入場登録' : '退場登録';
+                
+                // 位置情報の取得
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            latitude = position.coords.latitude;
+                            longitude = position.coords.longitude;
+                            
+                            // マップの位置を更新
+                            const pos = { lat: latitude, lng: longitude };
+                            map.setCenter(pos);
+                            marker.setPosition(pos);
+                            
+                            // 逆ジオコーディングで住所を取得
+                            const geocoder = new google.maps.Geocoder();
+                            geocoder.geocode({ location: pos }, (results, status) => {
+                                if (status === 'OK' && results[0]) {
+                                    address = results[0].formatted_address;
+                                    document.getElementById('locationInfo').innerText = `緯度: ${latitude}, 経度: ${longitude}\n住所: ${address}`;
+                                } else {
+                                    document.getElementById('locationInfo').innerText = `緯度: ${latitude}, 経度: ${longitude}\n住所: 取得できませんでした`;
+                                }
+                                
+                                // ローディング表示を非表示にして、コンテンツを表示
+                                document.getElementById('loading').classList.add('d-none');
+                                document.getElementById('content').classList.remove('d-none');
+                            });
+                        },
+                        error => {
+                            console.error('位置情報の取得に失敗しました:', error);
+                            document.getElementById('loading').classList.add('d-none');
+                            document.getElementById('error').classList.remove('d-none');
+                            document.getElementById('error').innerText = '位置情報の取得に失敗しました: ' + error.message;
+                        },
+                        {
+                            enableHighAccuracy: true,  // 高精度な位置情報
+                            timeout: 10000,           // 10秒でタイムアウト
+                            maximumAge: 0            // キャッシュを使用しない
+                        }
+                    );
+                } else {
+                    document.getElementById('loading').classList.add('d-none');
+                    document.getElementById('error').classList.remove('d-none');
+                    document.getElementById('error').innerText = 'お使いのブラウザは位置情報をサポートしていません。';
+                }
+                
+                // イベントリスナーの設定
+                document.getElementById('btnSubmit').addEventListener('click', submitAction);
+                document.getElementById('btnCancel').addEventListener('click', cancelAction);
+                
+            } catch (error) {
+                console.error('LIFFの初期化に失敗しました:', error);
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('error').classList.remove('d-none');
+                document.getElementById('error').innerText = 'LIFFの初期化に失敗しました: ' + error.message;
+            }
+        }
+
+        // 登録ボタンの処理
+        async function submitAction() {
+            try {
+                // ボタンを無効化
+                document.getElementById('btnSubmit').disabled = true;
+                document.getElementById('btnSubmit').innerText = '登録中...';
+                
+                // APIリクエスト用のデータ
+                const data = {
+                    actionType: params.actionType,
+                    customerId: params.customerId,
+                    scheduleId: params.scheduleId,
+                    latitude: latitude,
+                    longitude: longitude,
+                    address: address,
+                    token: params.token
+                };
+                
+                // サーバーにデータを送信
+                const response = await fetch('YOUR_API_ENDPOINT', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+                
+                if (response.ok) {
+                    // LIFFを閉じて、トーク画面に戻る
+                    liff.sendMessages([
+                        {
+                            type: 'text',
+                            text: params.actionType === 'entry' ? '入場が完了しました。' : '退場が完了しました。'
+                        }
+                    ]).then(() => {
+                        liff.closeWindow();
+                    });
+                } else {
+                    throw new Error('サーバーからエラーレスポンスを受け取りました');
+                }
+            } catch (error) {
+                console.error('登録に失敗しました:', error);
+                document.getElementById('error').classList.remove('d-none');
+                document.getElementById('error').innerText = '登録に失敗しました: ' + error.message;
+                
+                // ボタンを元に戻す
+                document.getElementById('btnSubmit').disabled = false;
+                document.getElementById('btnSubmit').innerText = '登録する';
+            }
+        }
+
+        // キャンセルボタンの処理
+        function cancelAction() {
+            liff.closeWindow();
+        }
+
+        // ページ読み込み時にLIFFを初期化
+        window.onload = initializeLiff;
+    </script>
+</body>
+</html>

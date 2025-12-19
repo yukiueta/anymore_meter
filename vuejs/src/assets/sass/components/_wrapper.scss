@@ -1,0 +1,35 @@
+.wrapper {
+  @apply relative;
+  margin-top: 50px;
+
+  // Add media query for mobile devices
+  @include media-breakpoint-down(xl) {
+    margin-top: 40px; // Set margin-top to 40px for smartphones
+  }
+
+  &.wrapper--top-nav {
+    .wrapper-box {
+      @include media-breakpoint-down(lg) {
+        @apply pt-0;
+      }
+    }
+  }
+
+  .wrapper-box {
+    transform: translatey(35px);
+    animation: 0.4s intro-wrapper-animation ease-in-out 0.33333s;
+    animation-fill-mode: forwards;
+    animation-delay: 0.2s;
+    @apply flex bg-theme-1 dark:bg-dark-8 opacity-80;
+    @include media-breakpoint-down(md) {
+      @apply bg-transparent;
+    }
+  }
+}
+
+@keyframes intro-wrapper-animation {
+  100% {
+    @apply opacity-100;
+    transform: translateX(0px);
+  }
+}

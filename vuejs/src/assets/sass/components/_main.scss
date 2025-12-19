@@ -1,0 +1,14 @@
+.main {
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-image: url(../images/bg-main.svg);
+  @include media-breakpoint-down(sm) {
+    @apply py-1;
+}
+}
+
+.dark {
+  .main {
+    background-image: url(../images/bg-main-dark.svg);
+  }
+}

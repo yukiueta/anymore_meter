@@ -1,0 +1,52 @@
+# Compiled output
+/dist-ssr/
+/.nuxt/
+dist/
+dist-dev/
+dist-prod/
+
+# Logs
+*.log
+
+# Dependency directories
+/node_modules/
+/vuejs/node_modules/
+/.cache/
+
+# Build files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock
+package-lock.json
+
+# Editor-specific files
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.mypy_cache/
+.pytest_cache/
+django/db.sqlite3
+django/staticfiles/
+django/media/
+
+# Virtual environments
+venv/
+.venv/
+myvenv*/

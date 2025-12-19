@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'fonts/roboto';
+@import '@left4code/tw-starter/dist/scss/breakpoint';
+@import '@left4code/tw-starter/dist/scss/mixins/media';
+
+/* 3rd Party Libraries */
+@import '@left4code/tw-starter/dist/scss/accordion';
+@import '@left4code/tw-starter/dist/scss/alert';
+@import '@left4code/tw-starter/dist/scss/btn';
+@import '@left4code/tw-starter/dist/scss/dropdown';
+@import '@left4code/tw-starter/dist/scss/file';
+@import '@left4code/tw-starter/dist/scss/form-check';
+@import '@left4code/tw-starter/dist/scss/form-control';
+@import '@left4code/tw-starter/dist/scss/form-help';
+@import '@left4code/tw-starter/dist/scss/form-inline';
+@import '@left4code/tw-starter/dist/scss/form-label';
+@import '@left4code/tw-starter/dist/scss/form-select';
+@import '@left4code/tw-starter/dist/scss/image-fit';
+@import '@left4code/tw-starter/dist/scss/input-group';
+@import '@left4code/tw-starter/dist/scss/intro';
+@import '@left4code/tw-starter/dist/scss/modal';
+@import '@left4code/tw-starter/dist/scss/pagination';
+@import '@left4code/tw-starter/dist/scss/progress';
+@import '@left4code/tw-starter/dist/scss/scrollbar';
+@import '@left4code/tw-starter/dist/scss/tab';
+@import '@left4code/tw-starter/dist/scss/table';
+@import '@left4code/tw-starter/dist/scss/box';
+@import 'tippy.js/dist/tippy';
+@import 'tippy.js/themes/light';
+@import 'tippy.js/dist/svg-arrow';
+@import 'tippy.js/animations/shift-away';
+@import 'toastify-js/src/toastify';
+
+/* Components */
+@import 'components/global';
+@import 'components/main';
+@import 'components/login';
+@import 'components/content';
+@import 'components/top-nav';
+@import 'components/toastify';
+@import 'components/toastify-content';
+@import 'components/feather-icon';
+@import 'components/error-page';
+@import 'components/tippy';
+@import 'components/wrapper';

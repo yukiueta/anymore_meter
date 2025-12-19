@@ -1,0 +1,10 @@
+.content {
+  @apply min-h-[calc(100svh-140px)] min-w-0 bg-theme-15 flex-1 pb-5 shadow-sm dark:bg-dark-1;
+  @include media-breakpoint-down(md) {
+    @apply px-0 pt-0 pb-0 bg-transparent max-w-full;
+  }
+  &:before {
+    content: '';
+    @apply w-full h-px block;
+  }
+}

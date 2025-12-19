@@ -1,0 +1,44 @@
+{
+  "name": "anymore-meter",
+  "version": "0.0.1",
+  "description": "Meter Management System",
+  "author": "Anymore",
+  "private": true,
+  "scripts": {
+    "serve": "vite --mode localdev",
+    "dev-build": "vite build --mode development",
+    "prod-build": "vite build --mode production",
+    "lint": "eslint . --ext .js,.vue,.ts",
+    "local-serve": "vite --mode localdev",
+    "dev-serve": "vite --mode development"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.7.0",
+    "@left4code/tw-starter": "^1.1.0",
+    "@zhuowenli/vue-feather-icons": "^5.0.2",
+    "cash-dom": "^8.1.0",
+    "chart.js": "^2.9.4",
+    "dayjs": "^1.10.4",
+    "feather-icons": "^4.28.0",
+    "tippy.js": "^6.2.7",
+    "toastify-js": "^1.9.3",
+    "tom-select": "^1.7.5",
+    "vue": "^3.3.4",
+    "vue-router": "^4.0.3",
+    "vuex": "^4.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/compiler-sfc": "^3.0.4",
+    "autoprefixer": "^10.3.1",
+    "eslint": "^7.20.0",
+    "eslint-plugin-vue": "^7.2.0",
+    "postcss": "^8.3.6",
+    "sass": "^1.37.5",
+    "sass-loader": "^12.1.0",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.2.11"
+  }
+}

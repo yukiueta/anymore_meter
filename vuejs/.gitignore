@@ -1,0 +1,34 @@
+# Compiled output
+/dist-ssr/
+/.nuxt/
+dist/
+dist-dev/
+dist-prod/
+
+# Logs
+*.log
+
+# Dependency directories
+/node_modules/
+/.cache/
+
+# Build files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock
+package-lock.json
+
+# Editor-specific files
+.vscode/
+.idea/
+
+# Environment variables
+.env.local
+
+# macOS
+.DS_Store
+
+# Tests
+/tests/e2e/reports/
+/tests/unit/coverage/
