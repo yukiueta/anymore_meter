@@ -1,27 +1,28 @@
 <template>
-  <div class="login">
-    <div class="container sm:px-10">
-      <div class="block xl:grid grid-cols-2 gap-4">
-        <div class="hidden xl:flex flex-col min-h-screen">
-          <div class="my-auto">
-            <div class="text-white font-medium text-4xl leading-tight mt-10">
-              Anymore Meter
-            </div>
-            <div class="text-white text-opacity-70 mt-5">
-              メーターデータ収集管理システム
-            </div>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
+    <div class="am-card w-full max-w-md mx-4">
+      <div class="am-card-body p-8">
+        <h1 class="am-h2 text-center mb-2">Anymore Meter</h1>
+        <p class="am-text text-center mb-8">メーターデータ収集管理システム</p>
+        
+        <div class="space-y-4">
+          <div class="am-form-group">
+            <label class="am-label">メールアドレス</label>
+            <input type="email" v-model="email" class="am-input" placeholder="email@example.com" />
           </div>
-        </div>
-        <div class="h-screen xl:h-auto flex py-5 xl:py-0 my-10 xl:my-0">
-          <div class="my-auto mx-auto xl:ml-20 bg-white px-5 sm:px-8 py-8 rounded-md shadow-md w-full sm:w-3/4 lg:w-2/4 xl:w-auto">
-            <h2 class="text-2xl font-bold text-center">ログイン</h2>
-            <div class="mt-8">
-              <input type="email" v-model="email" class="form-control py-3 px-4 block" placeholder="メールアドレス" />
-              <input type="password" v-model="password" class="form-control py-3 px-4 block mt-4" placeholder="パスワード" />
-              <button class="btn btn-primary py-3 px-4 w-full mt-5" @click="login">ログイン</button>
-              <p v-if="error" class="text-danger mt-3 text-center">{{ error }}</p>
-            </div>
+          
+          <div class="am-form-group">
+            <label class="am-label">パスワード</label>
+            <input type="password" v-model="password" class="am-input" placeholder="パスワード" />
           </div>
+          
+          <div v-if="error" class="am-alert am-alert-danger">
+            {{ error }}
+          </div>
+          
+          <button class="am-btn am-btn-primary w-full" @click="login">
+            ログイン
+          </button>
         </div>
       </div>
     </div>

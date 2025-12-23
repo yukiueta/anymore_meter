@@ -9,55 +9,27 @@ const state = () => {
       },
       {
         icon: 'CpuIcon',
-        pageName: 'meters',
+        pageName: 'meter-list',
         title: 'メーター',
-        category: 'meters',
-        subMenu: [
-          {
-            icon: 'ActivityIcon',
-            pageName: 'meter-list',
-            title: 'メーター一覧'
-          },
-        ]
+        category: 'meters'
       },
       {
         icon: 'BarChart2Icon',
-        pageName: 'readings',
+        pageName: 'reading-list',
         title: 'データ',
-        category: 'readings',
-        subMenu: [
-          {
-            icon: 'ActivityIcon',
-            pageName: 'reading-list',
-            title: 'データ一覧'
-          },
-        ]
+        category: 'readings'
       },
       {
         icon: 'AlertTriangleIcon',
-        pageName: 'alerts',
+        pageName: 'alert-list',
         title: 'アラート',
-        category: 'alerts',
-        subMenu: [
-          {
-            icon: 'ActivityIcon',
-            pageName: 'alert-list',
-            title: 'アラート一覧'
-          },
-        ]
+        category: 'alerts'
       },
       {
-        icon: 'SettingsIcon',
-        pageName: 'settings',
-        title: '設定',
-        category: 'settings',
-        subMenu: [
-          {
-            icon: 'ActivityIcon',
-            pageName: 'user-list',
-            title: 'ユーザー一覧'
-          },
-        ]
+        icon: 'UsersIcon',
+        pageName: 'user-list',
+        title: 'ユーザー',
+        category: 'settings'
       }
     ]
   }

@@ -10,8 +10,8 @@ WSGI_APPLICATION = 'anymore_meter.wsgi_prod.application'
 DEBUG = config('DEBUG', default=False, cast=bool)
 SECRET_KEY = config('SECRET_KEY')
 CORS_ALLOWED_ORIGINS = [
-    "https://anymore-meter.co.jp",
-    "https://mypage.anymore.co.jp",  # マイページprod
+    "https://meter.anymore.co.jp",
+    "https://mypage.anymore.co.jp",
 ]
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 CACHES = {

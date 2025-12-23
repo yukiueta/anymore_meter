@@ -12,8 +12,8 @@ SECRET_KEY = config('SECRET_KEY')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 CORS_ALLOWED_ORIGINS = [
-    "https://dev.anymore-meter.co.jp",
-    "https://dev.mypage.anymore.co.jp",  # マイページdev
+    "https://meter-dev.anymore.co.jp",
+    "https://mypage-dev.anymore.co.jp",  # 修正
 ]
 
 CACHES = {

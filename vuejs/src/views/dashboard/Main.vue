@@ -1,34 +1,28 @@
 <template>
-  <div>
-    <h2 class="text-lg font-medium mt-10">メーター一覧</h2>
-    <div class="box p-5 mt-5">
-      <div class="flex justify-end mb-5">
-        <button class="btn btn-primary" @click="showCreateModal = true">新規登録</button>
+  <div class="p-6">
+    <h2 class="am-h2 mb-6">ダッシュボード</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="am-card">
+        <div class="am-card-body">
+          <div class="am-text-sm mb-2">稼働メーター数</div>
+          <div class="am-h1">{{ stats.meter_count }}</div>
+        </div>
       </div>
-      <table class="table table-report">
-        <thead>
-          <tr>
-            <th>メーターID</th>
-            <th>ステータス</th>
-            <th>紐付け案件</th>
-            <th>最終受信</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="meter in meters" :key="meter.id">
-            <td>{{ meter.meter_id }}</td>
-            <td>
-              <span :class="statusClass(meter.status)">{{ statusLabel(meter.status) }}</span>
-            </td>
-            <td>{{ meter.project_name || '未割当' }}</td>
-            <td>{{ formatDate(meter.last_received_at) }}</td>
-            <td>
-              <router-link :to="`/meter/detail/${meter.id}`" class="btn btn-sm btn-outline-primary">詳細</router-link>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      
+      <div class="am-card">
+        <div class="am-card-body">
+          <div class="am-text-sm mb-2">本日の受信件数</div>
+          <div class="am-h1">{{ stats.today_readings }}</div>
+        </div>
+      </div>
+      
+      <div class="am-card">
+        <div class="am-card-body">
+          <div class="am-text-sm mb-2">未対応アラート</div>
+          <div class="am-h1" :class="stats.open_alerts > 0 ? 'text-red-600' : ''">{{ stats.open_alerts }}</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -39,53 +33,27 @@ import axios from 'axios'
 
 export default {
   setup() {
-    const meters = ref([])
-    const showCreateModal = ref(false)
+    const stats = ref({
+      meter_count: 0,
+      today_readings: 0,
+      open_alerts: 0
+    })
 
-    const fetchMeters = async () => {
+    const fetchStats = async () => {
       try {
-        const response = await axios.get('/api/meters/list/')
-        meters.value = response.data
+        const response = await axios.get('/api/meters/dashboard/stats/')
+        stats.value = response.data
       } catch (error) {
         console.error(error)
       }
     }
 
-    const statusClass = (status) => {
-      const classes = {
-        active: 'text-success',
-        inactive: 'text-warning',
-        offline: 'text-danger',
-        registered: 'text-slate-500'
-      }
-      return classes[status] || ''
-    }
-
-    const statusLabel = (status) => {
-      const labels = {
-        active: '稼働中',
-        inactive: '停止中',
-        offline: 'オフライン',
-        registered: '登録済み'
-      }
-      return labels[status] || status
-    }
-
-    const formatDate = (date) => {
-      if (!date) return '-'
-      return new Date(date).toLocaleString('ja-JP')
-    }
-
     onMounted(() => {
-      fetchMeters()
+      fetchStats()
     })
 
     return {
-      meters,
-      showCreateModal,
-      statusClass,
-      statusLabel,
-      formatDate
+      stats
     }
   }
 }
