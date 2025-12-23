@@ -10,6 +10,12 @@ WSGI_APPLICATION = 'anymore_meter.wsgi_dev.application'
 DEBUG = config('DEBUG', default=False, cast=bool)
 SECRET_KEY = config('SECRET_KEY')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+
+CORS_ALLOWED_ORIGINS = [
+    "https://dev.anymore-meter.co.jp",
+    "https://dev.mypage.anymore.co.jp",  # マイページdev
+]
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',

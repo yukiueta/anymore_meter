@@ -7,26 +7,49 @@ from .models import Alert
 from .serializers import AlertSerializer
 
 
-class AlertListView(APIView):
+class PaginationMixin:
+    def paginate(self, queryset, request):
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 20))
+        
+        total = queryset.count()
+        total_pages = (total + per_page - 1) // per_page
+        
+        start = (page - 1) * per_page
+        end = start + per_page
+        items = queryset[start:end]
+        
+        return {
+            'items': items,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': total_pages
+            }
+        }
+
+
+class AlertListView(APIView, PaginationMixin):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        queryset = Alert.objects.all()
-
-        meter_id = request.query_params.get('meter_id')
-        alert_type = request.query_params.get('type')
-        alert_status = request.query_params.get('status')
-
-        if meter_id:
-            queryset = queryset.filter(meter_id=meter_id)
-        if alert_type:
-            queryset = queryset.filter(alert_type=alert_type)
-        if alert_status:
-            queryset = queryset.filter(status=alert_status)
-
-        queryset = queryset.order_by('-detected_at')
-        serializer = AlertSerializer(queryset, many=True)
-        return Response(serializer.data)
+        alerts = Alert.objects.all().order_by('-detected_at')
+        
+        status_filter = request.GET.get('status')
+        type_filter = request.GET.get('type')
+        
+        if status_filter:
+            alerts = alerts.filter(status=status_filter)
+        if type_filter:
+            alerts = alerts.filter(alert_type=type_filter)
+        
+        result = self.paginate(alerts, request)
+        serializer = AlertSerializer(result['items'], many=True)
+        return Response({
+            'items': serializer.data,
+            'pagination': result['pagination']
+        })
 
 
 class AlertDetailView(APIView):
@@ -49,11 +72,10 @@ class AlertAcknowledgeView(APIView):
             alert = Alert.objects.get(pk=pk)
         except Alert.DoesNotExist:
             return Response({'error': 'not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        
         alert.status = 'acknowledged'
         alert.save()
-        serializer = AlertSerializer(alert)
-        return Response(serializer.data)
+        return Response({'status': 'acknowledged'})
 
 
 class AlertResolveView(APIView):
@@ -64,9 +86,8 @@ class AlertResolveView(APIView):
             alert = Alert.objects.get(pk=pk)
         except Alert.DoesNotExist:
             return Response({'error': 'not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        
         alert.status = 'resolved'
-        alert.resolved_at = timezone.now()
         alert.save()
-        serializer = AlertSerializer(alert)
-        return Response(serializer.data)
+        return Response({'status': 'resolved'})
+

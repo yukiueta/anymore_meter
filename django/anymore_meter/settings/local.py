@@ -10,6 +10,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://127.0.0.1:8081",
     "https://local.anymore-meter.co.jp",
+    "http://localhost:8082",  # マイページ追加
+    "http://127.0.0.1:8082",  # マイページ追加
 ]
 
 WSGI_APPLICATION = 'anymore_meter.wsgi_local.application'
@@ -32,5 +34,5 @@ DATABASES = {
     }
 }
 
-API_URL = 'http://127.0.0.1:8001/'
+API_URL = 'http://127.0.0.1:8002/'
 FRONT_URL = 'http://localhost:8080/'

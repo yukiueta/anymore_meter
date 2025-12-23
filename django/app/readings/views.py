@@ -5,26 +5,52 @@ from .models import MeterReading, DailySummary, MonthlySummary
 from .serializers import MeterReadingSerializer, DailySummarySerializer, MonthlySummarySerializer
 
 
-class ReadingListView(APIView):
+class PaginationMixin:
+    def paginate(self, queryset, request):
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 20))
+        
+        total = queryset.count()
+        total_pages = (total + per_page - 1) // per_page
+        
+        start = (page - 1) * per_page
+        end = start + per_page
+        items = queryset[start:end]
+        
+        return {
+            'items': items,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': total_pages
+            }
+        }
+
+
+class ReadingListView(APIView, PaginationMixin):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        queryset = MeterReading.objects.all()
-
-        meter_id = request.query_params.get('meter_id')
-        start_date = request.query_params.get('start_date')
-        end_date = request.query_params.get('end_date')
-
+        readings = MeterReading.objects.all().order_by('-recorded_at')
+        
+        meter_id = request.GET.get('meter_id')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
         if meter_id:
-            queryset = queryset.filter(meter_id=meter_id)
+            readings = readings.filter(meter_id=meter_id)
         if start_date:
-            queryset = queryset.filter(recorded_at__gte=start_date)
+            readings = readings.filter(recorded_at__date__gte=start_date)
         if end_date:
-            queryset = queryset.filter(recorded_at__lte=end_date)
-
-        queryset = queryset.order_by('-recorded_at')[:1000]
-        serializer = MeterReadingSerializer(queryset, many=True)
-        return Response(serializer.data)
+            readings = readings.filter(recorded_at__date__lte=end_date)
+        
+        result = self.paginate(readings, request)
+        serializer = MeterReadingSerializer(result['items'], many=True)
+        return Response({
+            'items': serializer.data,
+            'pagination': result['pagination']
+        })
 
 
 class ReadingDetailView(APIView):

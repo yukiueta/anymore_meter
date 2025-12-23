@@ -7,6 +7,7 @@ from .views import (
     MeterDeleteView,
     MeterAssignProjectView,
     MeterUnassignProjectView,
+    DashboardStatsView,
 )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path('<int:pk>/delete/', MeterDeleteView.as_view()),
     path('<int:pk>/assign/project/', MeterAssignProjectView.as_view()),
     path('<int:pk>/unassign/project/', MeterUnassignProjectView.as_view()),
+    path('dashboard/stats/', DashboardStatsView.as_view()),
 ]
