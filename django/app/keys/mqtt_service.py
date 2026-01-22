@@ -1,3 +1,4 @@
+# django/app/keys/mqtt_service.py
 """
 AWS IoT Core MQTT送信サービス
 """

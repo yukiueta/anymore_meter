@@ -128,22 +128,6 @@
             <label class="am-label">設置日</label>
             <input type="date" v-model="newMeter.installed_at" class="am-input" />
           </div>
-          <div class="am-form-group">
-            <label class="am-checkbox">
-              <input type="checkbox" v-model="newMeter.b_route_enabled" />
-              <span>Bルート有効</span>
-            </label>
-          </div>
-          <div v-if="newMeter.b_route_enabled">
-            <div class="am-form-group">
-              <label class="am-label">BルートID</label>
-              <input type="text" v-model="newMeter.b_route_id" class="am-input" placeholder="BルートID" />
-            </div>
-            <div class="am-form-group">
-              <label class="am-label">Bルートパスワード</label>
-              <input type="text" v-model="newMeter.b_route_password" class="am-input" placeholder="パスワード" />
-            </div>
-          </div>
           <div v-if="createError" class="am-alert am-alert-danger">
             {{ createError }}
           </div>
@@ -213,10 +197,7 @@ export default {
     const newMeter = ref({
       meter_id: '',
       status: 'inactive',
-      installed_at: '',
-      b_route_enabled: true,
-      b_route_id: '',
-      b_route_password: ''
+      installed_at: ''
     })
 
     const fetchMeters = async (page = 1) => {
@@ -288,10 +269,7 @@ export default {
         newMeter.value = {
           meter_id: '',
           status: 'inactive',
-          installed_at: '',
-          b_route_enabled: true,
-          b_route_id: '',
-          b_route_password: ''
+          installed_at: ''
         }
         fetchMeters(1)
       } catch (error) {
@@ -309,7 +287,7 @@ export default {
       bulkResult.value = null
       try {
         const response = await axios.post('/api/meters/bulk/create/', {
-          meters: ids.map(meter_id => ({ meter_id, status: 'inactive', b_route_enabled: true }))
+          meters: ids.map(meter_id => ({ meter_id, status: 'inactive' }))
         })
         bulkResult.value = response.data
         fetchMeters(1)

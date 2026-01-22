@@ -1,3 +1,4 @@
+# django/app/keys/crypto.py 
 """
 AES-128-CBC 暗号化/復号化ユーティリティ
 TG Octopus Energy スマートメーター仕様書 Section 3.15 準拠
