@@ -31,7 +31,6 @@ class MeterReading(models.Model):
         db_table = 'meter_readings'
         verbose_name = '30分データ'
         verbose_name_plural = '30分データ'
-        unique_together = ['meter', 'timestamp', 'reading_type']
         indexes = [
             models.Index(fields=['meter', 'timestamp']),
             models.Index(fields=['timestamp']),

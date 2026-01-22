@@ -63,7 +63,6 @@ class BillingSummary(models.Model):
         verbose_name = '請求サマリ'
         verbose_name_plural = '請求サマリ'
         ordering = ['-period_end', 'meter_id']
-        unique_together = ['meter', 'period_start', 'period_end']
     
     # 基本情報
     meter = models.ForeignKey('meters.Meter', on_delete=models.CASCADE, related_name='billing_summaries')
