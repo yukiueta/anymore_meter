@@ -77,8 +77,8 @@ MEDIA_URL = f'https://s3.{AWS_S3_REGION_NAME}.amazonaws.com/{AWS_STORAGE_BUCKET_
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATIC_URL = f'https://s3.{AWS_S3_REGION_NAME}.amazonaws.com/{AWS_STORAGE_BUCKET_NAME}/static/'
 
-API_URL = 'https://dev.anymore-meter.co.jp/'
-FRONT_URL = 'https://dev.anymore-meter.co.jp/'
+API_URL = 'https://meter-dev.anymore.co.jp/'
+FRONT_URL = 'https://meter-dev.anymore.co.jp/'
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_BROKER_URL = REDIS_URL
