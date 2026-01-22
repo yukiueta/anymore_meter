@@ -10,16 +10,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name='billingsummary',
-            name='billing_sum_status_be5f39_idx',
-        ),
         migrations.RemoveField(
             model_name='billingsummary',
             name='status',
-        ),
-        migrations.AddIndex(
-            model_name='billingsummary',
-            index=models.Index(fields=['zone', 'period_end'], name='billing_sum_zone_ef88f0_idx'),
         ),
     ]
