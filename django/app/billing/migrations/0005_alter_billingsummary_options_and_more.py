@@ -16,18 +16,6 @@ class Migration(migrations.Migration):
             name='billingsummary',
             options={'ordering': ['-period_end', 'meter_id'], 'verbose_name': '請求サマリ', 'verbose_name_plural': '請求サマリ'},
         ),
-        migrations.RemoveIndex(
-            model_name='billingsummary',
-            name='billing_sum_project_1f10a0_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='billingsummary',
-            name='billing_sum_period__f8c7b7_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='billingsummary',
-            name='billing_sum_zone_ef88f0_idx',
-        ),
         migrations.AddField(
             model_name='billingsummary',
             name='fetch_completed_at',
@@ -117,9 +105,5 @@ class Migration(migrations.Migration):
             model_name='billingsummary',
             name='zone',
             field=models.IntegerField(db_index=True, default=0, verbose_name='電力管轄'),
-        ),
-        migrations.AlterModelTable(
-            name='billingsummary',
-            table=None,
         ),
     ]

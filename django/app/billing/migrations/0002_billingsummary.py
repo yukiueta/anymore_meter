@@ -39,8 +39,6 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': '請求集計',
                 'verbose_name_plural': '請求集計',
-                'db_table': 'billing_summaries',
-                'indexes': [models.Index(fields=['project_id'], name='billing_sum_project_1f10a0_idx'), models.Index(fields=['status'], name='billing_sum_status_be5f39_idx'), models.Index(fields=['period_end'], name='billing_sum_period__f8c7b7_idx')],
                 'unique_together': {('meter', 'period_start', 'period_end')},
             },
         ),
