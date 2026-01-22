@@ -1,4 +1,4 @@
-# 0004
+# django/app/readings/migrations/0004_rename_grid_export_kwh_meterreading_route_b_export_kwh_and_more.py
 
 from django.db import migrations, models
 

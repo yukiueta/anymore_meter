@@ -1,4 +1,4 @@
-# 0003
+# django/app/readings/migrations/0003_delete_billingsummary.py
 
 from django.db import migrations
 
@@ -10,7 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name='BillingSummary',
-        ),
     ]

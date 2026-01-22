@@ -1,4 +1,4 @@
-# 0001
+# django/app/readings/migrations/0001_initial.py
 
 from django.db import migrations, models
 import django.db.models.deletion

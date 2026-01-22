@@ -1,5 +1,4 @@
-# 0002
-
+#django/app/readings/migrations/0002_billingsummary_meterevent_and_more.py
 from django.db import migrations, models
 import django.db.models.deletion
 
@@ -12,27 +11,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='BillingSummary',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('billing_start', models.DateTimeField(verbose_name='検針開始日時')),
-                ('billing_end', models.DateTimeField(verbose_name='検針終了日時')),
-                ('generation_kwh', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='総発電量(kWh)')),
-                ('export_kwh', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='売電量(kWh)')),
-                ('self_consumption_kwh', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='自家消費量(kWh)')),
-                ('unit_price', models.DecimalField(decimal_places=2, max_digits=8, verbose_name='単価(円/kWh)')),
-                ('amount', models.IntegerField(verbose_name='請求金額(円)')),
-                ('status', models.CharField(choices=[('draft', '下書き'), ('confirmed', '確定'), ('billed', '請求済')], default='draft', max_length=20, verbose_name='ステータス')),
-                ('calculated_at', models.DateTimeField(auto_now=True, verbose_name='集計日時')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-            ],
-            options={
-                'verbose_name': '請求期間集計',
-                'verbose_name_plural': '請求期間集計',
-                'db_table': 'billing_summaries',
-            },
-        ),
         migrations.CreateModel(
             name='MeterEvent',
             fields=[
@@ -195,11 +173,6 @@ class Migration(migrations.Migration):
             name='meter',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='events', to='meters.meter', verbose_name='メーター'),
         ),
-        migrations.AddField(
-            model_name='billingsummary',
-            name='meter',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='billing_summaries', to='meters.meter', verbose_name='メーター'),
-        ),
         migrations.RemoveField(
             model_name='meterreading',
             name='export_kwh',
@@ -223,17 +196,5 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name='meterevent',
             index=models.Index(fields=['event_code'], name='meter_event_event_c_191cd4_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='billingsummary',
-            index=models.Index(fields=['meter', 'billing_start'], name='billing_sum_meter_i_194bcd_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='billingsummary',
-            index=models.Index(fields=['status'], name='billing_sum_status_be5f39_idx'),
-        ),
-        migrations.AlterUniqueTogether(
-            name='billingsummary',
-            unique_together={('meter', 'billing_start')},
         ),
     ]
