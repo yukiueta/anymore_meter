@@ -1,5 +1,5 @@
 // ===========================================
-// Navigation - Anymore Brand Style
+// Top Navigation - TG Octopus
 // ===========================================
 
 .am-nav {
@@ -8,75 +8,110 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  height: 64px;
+  height: 56px;
   display: flex;
   align-items: center;
-  padding: 0 2rem;
-  background: linear-gradient(135deg, #1a2f5a 0%, #2a4070 100%);
-  box-shadow: 0 4px 20px rgba(26, 47, 90, 0.25);
+  padding: 0 1.5rem;
+  background: linear-gradient(135deg, #1a0033 0%, #2d0052 100%);
+  box-shadow: 0 2px 8px rgba(26, 0, 51, 0.3);
 }
 
 .am-nav-brand {
   display: flex;
   align-items: center;
-  margin-right: 3rem;
+  margin-right: 2rem;
 }
 
 .am-nav-logo {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
   text-decoration: none;
   cursor: pointer;
-  letter-spacing: -0.025em;
-  
+
   &:hover {
     opacity: 0.9;
   }
 }
 
+.am-nav-logo-icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+
+.am-nav-logo-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.am-nav-logo-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.am-nav-logo-subtitle {
+  font-size: 0.5625rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .am-nav-menu {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
-  flex: 1;
-
-  li {
-    position: relative;
-  }
 }
 
 .am-nav-link {
-  display: flex;
-  align-items: center;
-  padding: 0.625rem 1.125rem;
+  padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   border-radius: 0.5rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 
   &:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
   }
 
   &.am-nav-link-active {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    background: #e91e8c;
     font-weight: 600;
+  }
+}
+
+.am-nav-powered {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: auto;
+  margin-right: 1.5rem;
+  
+  a {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    font-weight: 500;
+    
+    &:hover {
+      color: #00d4aa;
+    }
   }
 }
 
 .am-nav-user {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  margin-left: auto;
+  gap: 1rem;
 }
 
 .am-nav-user-info {
@@ -86,34 +121,33 @@
 .am-nav-user-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: white;
+  color: #ffffff;
 }
 
 .am-nav-user-email {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .am-nav-logout {
-  padding: 0.5rem 1rem;
+  padding: 0.4375rem 1rem;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: white;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: #e91e8c;
+    border-color: #e91e8c;
   }
 }
 
-// Main content area
 .am-main {
-  padding-top: 64px;
+  padding-top: 56px;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background: #f4f4f5;
 }

@@ -2,11 +2,25 @@
   <div class="p-6">
     <h2 class="am-h2 mb-6">ダッシュボード</h2>
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <div class="am-card">
         <div class="am-card-body">
-          <div class="am-text-sm mb-2">稼働メーター数</div>
-          <div class="am-h1">{{ stats.meter_count }}</div>
+          <div class="am-text-sm mb-2">全メーター数</div>
+          <div class="am-h1">{{ stats.total_meters }}</div>
+        </div>
+      </div>
+      
+      <div class="am-card">
+        <div class="am-card-body">
+          <div class="am-text-sm mb-2">稼働中</div>
+          <div class="am-h1 text-green-600">{{ stats.active_meters }}</div>
+        </div>
+      </div>
+      
+      <div class="am-card">
+        <div class="am-card-body">
+          <div class="am-text-sm mb-2">オフライン</div>
+          <div class="am-h1" :class="stats.offline_meters > 0 ? 'text-orange-600' : ''">{{ stats.offline_meters }}</div>
         </div>
       </div>
       
@@ -34,7 +48,9 @@ import axios from 'axios'
 export default {
   setup() {
     const stats = ref({
-      meter_count: 0,
+      total_meters: 0,
+      active_meters: 0,
+      offline_meters: 0,
       today_readings: 0,
       open_alerts: 0
     })

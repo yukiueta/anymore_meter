@@ -3,15 +3,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Sum
-from django.db.models.functions import TruncDate, TruncHour
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 
-from app.meters.models import Meter, MeterAssignment
+from app.meters.models import MeterAssignment
 from app.readings.models import MeterReading, DailySummary, MonthlySummary
 
 
@@ -41,10 +38,7 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
     def get(self, request):
         customer_id = self.get_customer_id(request)
         if not customer_id:
-            return Response(
-                {'message': '認証が必要です'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({'message': '認証が必要です'}, status=status.HTTP_401_UNAUTHORIZED)
 
         period = request.query_params.get('period', 'month')
         date_str = request.query_params.get('date')
@@ -54,7 +48,6 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
         except ValueError:
             target_date = datetime.now().date()
 
-        # メーター取得
         assignment = MeterAssignment.objects.filter(
             project_id=customer_id,
             end_date__isnull=True
@@ -64,8 +57,8 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
             return Response({
                 'chart': [],
                 'total_generation': 0,
-                'total_sold': 0,
-                'total_self': 0,
+                'total_export': 0,
+                'total_self_consumption': 0,
                 'meter_id': ''
             })
 
@@ -77,7 +70,7 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
             data = self._get_weekly_data(meter, target_date)
         elif period == 'year':
             data = self._get_yearly_data(meter, target_date)
-        else:  # month
+        else:
             data = self._get_monthly_data(meter, target_date)
 
         data['meter_id'] = meter.meter_id
@@ -88,144 +81,145 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
         start = datetime.combine(target_date, datetime.min.time())
         end = start + timedelta(days=1)
 
-        readings = MeterReading.objects.filter(
+        readings = list(MeterReading.objects.filter(
             meter=meter,
-            recorded_at__gte=start,
-            recorded_at__lt=end
-        ).annotate(
-            hour=TruncHour('recorded_at')
-        ).values('hour').annotate(
-            sold=Sum('export_kwh'),
-            pv=Sum('pv_energy_kwh')
-        ).order_by('hour')
+            timestamp__gte=start,
+            timestamp__lt=end,
+            reading_type='interval'
+        ).order_by('timestamp'))
+
+        hourly_data = {}
+        prev = None
+        
+        for r in readings:
+            hour = r.timestamp.hour
+            if hour not in hourly_data:
+                hourly_data[hour] = {'gen': Decimal('0'), 'exp': Decimal('0')}
+            
+            if prev and r.reading_kwh and prev.reading_kwh:
+                diff = r.reading_kwh - prev.reading_kwh
+                if diff > 0:
+                    hourly_data[hour]['gen'] += diff
+            
+            if prev and r.grid_export_kwh and prev.grid_export_kwh:
+                diff = r.grid_export_kwh - prev.grid_export_kwh
+                if diff > 0:
+                    hourly_data[hour]['exp'] += diff
+            
+            prev = r
 
         chart = []
         for i in range(24):
-            hour_data = next((r for r in readings if r['hour'].hour == i), None)
-            sold = float(hour_data['sold'] or 0) if hour_data else 0
-            pv = float(hour_data['pv'] or 0) if hour_data else 0
-            self_consumption = max(0, pv - sold)
+            gen = float(hourly_data.get(i, {}).get('gen', 0))
+            exp = float(hourly_data.get(i, {}).get('exp', 0))
             chart.append({
                 'label': str(i),
-                'sold': round(sold, 2),
-                'self': round(self_consumption, 2)
+                'generation': round(gen, 2),
+                'export': round(exp, 2),
+                'self_consumption': round(max(0, gen - exp), 2)
             })
-
-        total_sold = sum(c['sold'] for c in chart)
-        total_self = sum(c['self'] for c in chart)
 
         return {
             'chart': chart,
-            'total_generation': round(total_sold + total_self, 2),
-            'total_sold': round(total_sold, 2),
-            'total_self': round(total_self, 2)
+            'total_generation': round(sum(c['generation'] for c in chart), 2),
+            'total_export': round(sum(c['export'] for c in chart), 2),
+            'total_self_consumption': round(sum(c['self_consumption'] for c in chart), 2)
         }
 
     def _get_weekly_data(self, meter, target_date):
         """週次: 日ごとのデータ（7日間）"""
-        # 週の開始日（月曜日）
         start = target_date - timedelta(days=target_date.weekday())
         end = start + timedelta(days=7)
 
-        summaries = DailySummary.objects.filter(
+        summaries = list(DailySummary.objects.filter(
             meter=meter,
             date__gte=start,
             date__lt=end
-        ).order_by('date')
+        ).order_by('date'))
 
         weekdays = ['月', '火', '水', '木', '金', '土', '日']
         chart = []
         
         for i in range(7):
             day = start + timedelta(days=i)
-            summary = next((s for s in summaries if s.date == day), None)
-            sold = float(summary.total_export_kwh or 0) if summary else 0
-            pv = float(summary.total_pv_kwh or 0) if summary else 0
-            self_consumption = max(0, pv - sold)
+            s = next((x for x in summaries if x.date == day), None)
+            gen = float(s.generation_kwh or 0) if s else 0
+            exp = float(s.export_kwh or 0) if s else 0
+            self_c = float(s.self_consumption_kwh or 0) if s else max(0, gen - exp)
             chart.append({
                 'label': weekdays[i],
-                'sold': round(sold, 2),
-                'self': round(self_consumption, 2)
+                'generation': round(gen, 2),
+                'export': round(exp, 2),
+                'self_consumption': round(self_c, 2)
             })
-
-        total_sold = sum(c['sold'] for c in chart)
-        total_self = sum(c['self'] for c in chart)
 
         return {
             'chart': chart,
-            'total_generation': round(total_sold + total_self, 2),
-            'total_sold': round(total_sold, 2),
-            'total_self': round(total_self, 2)
+            'total_generation': round(sum(c['generation'] for c in chart), 2),
+            'total_export': round(sum(c['export'] for c in chart), 2),
+            'total_self_consumption': round(sum(c['self_consumption'] for c in chart), 2)
         }
 
     def _get_monthly_data(self, meter, target_date):
         """月次: 日ごとのデータ（1ヶ月）"""
         import calendar
-        
-        year = target_date.year
-        month = target_date.month
-        _, days_in_month = calendar.monthrange(year, month)
-        
+        year, month = target_date.year, target_date.month
+        _, days = calendar.monthrange(year, month)
         start = target_date.replace(day=1)
-        end = start + timedelta(days=days_in_month)
 
-        summaries = DailySummary.objects.filter(
+        summaries = list(DailySummary.objects.filter(
             meter=meter,
             date__gte=start,
-            date__lt=end
-        ).order_by('date')
+            date__lt=start + timedelta(days=days)
+        ).order_by('date'))
 
         chart = []
-        for i in range(1, days_in_month + 1):
+        for i in range(1, days + 1):
             day = start.replace(day=i)
-            summary = next((s for s in summaries if s.date == day), None)
-            sold = float(summary.total_export_kwh or 0) if summary else 0
-            pv = float(summary.total_pv_kwh or 0) if summary else 0
-            self_consumption = max(0, pv - sold)
+            s = next((x for x in summaries if x.date == day), None)
+            gen = float(s.generation_kwh or 0) if s else 0
+            exp = float(s.export_kwh or 0) if s else 0
+            self_c = float(s.self_consumption_kwh or 0) if s else max(0, gen - exp)
             chart.append({
                 'label': str(i),
-                'sold': round(sold, 2),
-                'self': round(self_consumption, 2)
+                'generation': round(gen, 2),
+                'export': round(exp, 2),
+                'self_consumption': round(self_c, 2)
             })
-
-        total_sold = sum(c['sold'] for c in chart)
-        total_self = sum(c['self'] for c in chart)
 
         return {
             'chart': chart,
-            'total_generation': round(total_sold + total_self, 2),
-            'total_sold': round(total_sold, 2),
-            'total_self': round(total_self, 2)
+            'total_generation': round(sum(c['generation'] for c in chart), 2),
+            'total_export': round(sum(c['export'] for c in chart), 2),
+            'total_self_consumption': round(sum(c['self_consumption'] for c in chart), 2)
         }
 
     def _get_yearly_data(self, meter, target_date):
         """年次: 月ごとのデータ（12ヶ月）"""
         year = target_date.year
 
-        summaries = MonthlySummary.objects.filter(
+        summaries = list(MonthlySummary.objects.filter(
             meter=meter,
             year_month__startswith=str(year)
-        ).order_by('year_month')
+        ).order_by('year_month'))
 
         chart = []
         for i in range(1, 13):
-            year_month = f"{year}-{str(i).zfill(2)}"
-            summary = next((s for s in summaries if s.year_month == year_month), None)
-            sold = float(summary.total_export_kwh or 0) if summary else 0
-            pv = float(summary.total_pv_kwh or 0) if summary else 0
-            self_consumption = max(0, pv - sold)
+            ym = f"{year}-{str(i).zfill(2)}"
+            s = next((x for x in summaries if x.year_month == ym), None)
+            gen = float(s.generation_kwh or 0) if s else 0
+            exp = float(s.export_kwh or 0) if s else 0
+            self_c = float(s.self_consumption_kwh or 0) if s else max(0, gen - exp)
             chart.append({
                 'label': f'{i}月',
-                'sold': round(sold, 2),
-                'self': round(self_consumption, 2)
+                'generation': round(gen, 2),
+                'export': round(exp, 2),
+                'self_consumption': round(self_c, 2)
             })
-
-        total_sold = sum(c['sold'] for c in chart)
-        total_self = sum(c['self'] for c in chart)
 
         return {
             'chart': chart,
-            'total_generation': round(total_sold + total_self, 2),
-            'total_sold': round(total_sold, 2),
-            'total_self': round(total_self, 2)
+            'total_generation': round(sum(c['generation'] for c in chart), 2),
+            'total_export': round(sum(c['export'] for c in chart), 2),
+            'total_self_consumption': round(sum(c['self_consumption'] for c in chart), 2)
         }

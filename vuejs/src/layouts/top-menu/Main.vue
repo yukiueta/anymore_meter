@@ -3,7 +3,18 @@
     <nav class="am-nav">
       <div class="am-nav-brand">
         <a @click="goTopPage" class="am-nav-logo">
-          Anymore Meter
+          <svg class="am-nav-logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="12" r="8" fill="#e91e8c"/>
+            <ellipse cx="16" cy="12" rx="3" ry="2" fill="#ffffff" opacity="0.3"/>
+            <path d="M8 20c-1 2-2 8 0 8s2-4 3-6" stroke="#00d4aa" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M12 22c0 2-1 6 1 6s2-4 2-6" stroke="#00d4aa" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M18 22c0 2 1 6-1 6s-2-4-2-6" stroke="#00d4aa" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M24 20c1 2 2 8 0 8s-2-4-3-6" stroke="#00d4aa" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <div class="am-nav-logo-content">
+            <span class="am-nav-logo-title">TG Octopus</span>
+            <span class="am-nav-logo-subtitle">Meter Management</span>
+          </div>
         </a>
       </div>
 
@@ -18,6 +29,8 @@
           </router-link>
         </li>
       </ul>
+
+      <span class="am-nav-powered">powered by <a href="https://anymore.co.jp" target="_blank">Anymore</a></span>
 
       <div class="am-nav-user">
         <div class="am-nav-user-info">
@@ -54,7 +67,7 @@ export default defineComponent({
     const currentUser = computed(() => store.getters['users/currentUser'])
 
     const goTopPage = () => {
-      router.push({ name: 'dashboard' })
+      router.push({ name: 'meter-list' })
     }
 
     const logout = () => {

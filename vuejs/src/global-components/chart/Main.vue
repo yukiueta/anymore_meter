@@ -5,7 +5,10 @@
 <script>
 import { defineComponent, onMounted, ref, inject, watch } from 'vue'
 import { helper as $h } from '@/utils/helper'
-import Chart from 'chart.js'
+import { Chart, registerables } from 'chart.js'
+
+// すべてのコンポーネントを登録
+Chart.register(...registerables)
 
 export default defineComponent({
   props: {

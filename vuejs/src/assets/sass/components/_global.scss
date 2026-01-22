@@ -1,180 +1,41 @@
+* {
+  box-sizing: border-box;
+}
+
 html {
-  @apply bg-gray-100;
-  body {
-    -webkit-font-smoothing: antialiased;
-    @apply overflow-x-hidden overflow-y-hidden font-roboto text-sm text-gray-800;
-  }
+  background: #f4f4f5;
 }
 
-// Buttons
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: 0.5rem;
+  color: #18181b;
+  line-height: 1.5;
+}
+
+// チェックボックス・ラジオボタンの色統一
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #e91e8c;
   cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
-.btn-primary {
-  background-color: #008bf2;
-  color: white;
-
-  &:hover:not(:disabled) {
-    background-color: #0072c9;
-  }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
-
-  &:hover:not(:disabled) {
-    background-color: #d1d5db;
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.btn-danger {
-  background-color: #ef4444;
-  color: white;
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
 
-  &:hover:not(:disabled) {
-    background-color: #dc2626;
-  }
-}
-
-.btn-sm {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.btn-lg {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-}
-
-// Tables
-.table-report {
-  width: 100%;
-  border-collapse: collapse;
-
-  thead {
-    background-color: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-
-    th {
-      padding: 1rem 1.5rem;
-      text-align: left;
-      font-weight: 600;
-      color: #374151;
-      font-size: 0.875rem;
-    }
-  }
-
-  tbody {
-    tr {
-      border-bottom: 1px solid #f3f4f6;
-      transition: background 0.15s;
-
-      &:hover {
-        background-color: #f9fafb;
-      }
-
-      td {
-        padding: 1rem 1.5rem;
-        color: #4b5563;
-        font-size: 0.875rem;
-      }
-    }
-  }
-}
-
-// Cards / Box
-.box {
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-// Status badges
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.badge-success {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.badge-warning {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.badge-danger {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.badge-gray {
-  background-color: #f3f4f6;
-  color: #4b5563;
-}
-
-// Form elements
-select,
-input[type="text"],
-input[type="password"],
-input[type="date"],
-input[type="number"],
-input[type="email"] {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #008bf2;
-    box-shadow: 0 0 0 3px rgba(0, 139, 242, 0.1);
-  }
-}
-
-// Custom scrollbar
-.custom-scrollbar {
-  overflow-x: auto;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.3);
-    }
+  &:hover {
+    background: #a1a1aa;
   }
 }

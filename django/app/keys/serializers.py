@@ -7,11 +7,11 @@ class MeterKeySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MeterKey
-        fields = ['id', 'meter', 'meter_id', 'master_key', 'data_key', 'created_at', 'updated_at']
-        extra_kwargs = {
-            'master_key': {'write_only': True},
-            'data_key': {'write_only': True},
-        }
+        fields = [
+            'id', 'meter', 'meter_id', 'key_version',
+            'registered_at', 'last_key_exchange',
+            'created_at', 'updated_at'
+        ]
 
 
 class MeterKeyDetailSerializer(serializers.ModelSerializer):
@@ -19,4 +19,9 @@ class MeterKeyDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MeterKey
-        fields = ['id', 'meter', 'meter_id', 'master_key', 'data_key', 'created_at', 'updated_at']
+        fields = [
+            'id', 'meter', 'meter_id',
+            'master_key', 'data_key', 'key_version',
+            'registered_at', 'last_key_exchange',
+            'created_at', 'updated_at'
+        ]

@@ -1,3 +1,4 @@
+# django/anymore_meter/settings/base.py
 """
 Django settings for anymore_meter project.
 """
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
     'django_rest_passwordreset',
     'app.meters',
     'app.readings',
+    'app.billing',
     'app.keys',
     'app.alerts',
     'app.user',
@@ -166,8 +168,17 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'app.alerts.tasks.check_communication_alerts',
         'schedule': crontab(minute='*/30'),
     },
+    # 請求集計（毎日AM6:00に実行）
+    'generate-billing-summary': {
+        'task': 'app.billing.tasks.generate_billing_summary',
+        'schedule': crontab(hour=6, minute=0),
+    },
+    # processingタイムアウト処理（毎時0分に実行）
+    'reset-stale-processing': {
+        'task': 'app.billing.tasks.reset_stale_processing',
+        'schedule': crontab(minute=0),
+    },
 }
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -191,3 +202,16 @@ LOGGING = {
         },
     },
 }
+
+
+# 施工管理API連携
+SEKOU_API_URL = config('SEKOU_API_URL', default='')
+SEKOU_API_KEY = config('SEKOU_API_KEY', default='')
+
+# Anymore連携用（Anymore → Meter の認証）
+ANYMORE_API_KEY = config('ANYMORE_API_KEY', default='')
+
+# AWS IoT Core
+AWS_IOT_ENDPOINT = config('AWS_IOT_ENDPOINT', default='a3euups5uuz661-ats.iot.ap-northeast-1.amazonaws.com')
+AWS_IOT_REGION = config('AWS_IOT_REGION', default='ap-northeast-1')
+LAMBDA_API_KEY = config('LAMBDA_API_KEY', default='')

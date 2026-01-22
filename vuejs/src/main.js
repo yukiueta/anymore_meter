@@ -5,9 +5,7 @@ import store from './store'
 import globalComponents from './global-components'
 import utils from './utils'
 import './libs'
-import VPagination from '@hennge/vue3-pagination'
 import Multiselect from '@vueform/multiselect'
-import '@hennge/vue3-pagination/dist/vue3-pagination.css'
 import './assets/sass/app.scss'
 import axios from 'axios'
 
@@ -26,7 +24,6 @@ const app = createApp(App)
 globalComponents(app)
 utils(app)
 
-app.component('VPagination', VPagination)
 app.component('Multiselect', Multiselect)
 
 app.mount('#app')

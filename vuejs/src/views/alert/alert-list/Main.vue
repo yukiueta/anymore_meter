@@ -22,7 +22,18 @@
         </select>
       </div>
       <div class="am-filter-actions">
+        <button class="am-btn am-btn-ghost" @click="resetFilter">リセット</button>
         <button class="am-btn am-btn-primary" @click="search">検索</button>
+      </div>
+    </div>
+    
+    <!-- 一括操作 -->
+    <div v-if="selectedAlerts.length > 0" class="mb-4 p-4 bg-blue-50 rounded-lg flex items-center justify-between">
+      <span class="text-blue-800">{{ selectedAlerts.length }}件選択中</span>
+      <div class="flex gap-2">
+        <button class="am-btn am-btn-sm am-btn-secondary" @click="bulkAcknowledge">一括確認</button>
+        <button class="am-btn am-btn-sm am-btn-success" @click="bulkResolve">一括解決</button>
+        <button class="am-btn am-btn-sm am-btn-ghost" @click="selectedAlerts = []">選択解除</button>
       </div>
     </div>
     
@@ -30,6 +41,9 @@
       <table class="am-table">
         <thead>
           <tr>
+            <th class="w-10">
+              <input type="checkbox" @change="toggleAll" :checked="isAllSelected" />
+            </th>
             <th>日時</th>
             <th>メーターID</th>
             <th>種別</th>
@@ -40,14 +54,17 @@
         </thead>
         <tbody>
           <tr v-if="alerts.length === 0">
-            <td colspan="6">
+            <td colspan="7">
               <div class="am-empty">
                 <div class="am-empty-title">アラートがありません</div>
               </div>
             </td>
           </tr>
-          <tr v-for="alert in alerts" :key="alert.id">
-            <td>{{ formatDate(alert.detected_at) }}</td>
+          <tr v-for="alert in alerts" :key="alert.id" :class="{ 'bg-blue-50': selectedAlerts.includes(alert.id) }">
+            <td>
+              <input type="checkbox" :value="alert.id" v-model="selectedAlerts" />
+            </td>
+            <td>{{ formatDateTime(alert.detected_at) }}</td>
             <td class="font-medium text-gray-900">{{ alert.meter_id }}</td>
             <td>
               <span class="am-badge am-badge-gray">{{ typeLabel(alert.alert_type) }}</span>
@@ -80,9 +97,10 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import Pagination from '@/components/Pagination.vue'
+import { formatDateTime } from '@/utils/date'
 
 export default {
   components: { Pagination },
@@ -91,6 +109,11 @@ export default {
     const pagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 0 })
     const selectedStatus = ref('')
     const selectedType = ref('')
+    const selectedAlerts = ref([])
+
+    const isAllSelected = computed(() => {
+      return alerts.value.length > 0 && alerts.value.every(a => selectedAlerts.value.includes(a.id))
+    })
 
     const fetchAlerts = async (page = 1) => {
       try {
@@ -101,6 +124,7 @@ export default {
         const response = await axios.get('/api/alerts/list/', { params })
         alerts.value = response.data.items
         pagination.value = response.data.pagination
+        selectedAlerts.value = []
       } catch (error) {
         console.error(error)
       }
@@ -110,8 +134,22 @@ export default {
       fetchAlerts(1)
     }
 
+    const resetFilter = () => {
+      selectedStatus.value = ''
+      selectedType.value = ''
+      fetchAlerts(1)
+    }
+
     const changePage = (page) => {
       fetchAlerts(page)
+    }
+
+    const toggleAll = (e) => {
+      if (e.target.checked) {
+        selectedAlerts.value = alerts.value.map(a => a.id)
+      } else {
+        selectedAlerts.value = []
+      }
     }
 
     const acknowledge = async (id) => {
@@ -126,6 +164,26 @@ export default {
     const resolve = async (id) => {
       try {
         await axios.post(`/api/alerts/${id}/resolve/`)
+        fetchAlerts(pagination.value.page)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    const bulkAcknowledge = async () => {
+      if (selectedAlerts.value.length === 0) return
+      try {
+        await axios.post('/api/alerts/bulk/acknowledge/', { alert_ids: selectedAlerts.value })
+        fetchAlerts(pagination.value.page)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    const bulkResolve = async () => {
+      if (selectedAlerts.value.length === 0) return
+      try {
+        await axios.post('/api/alerts/bulk/resolve/', { alert_ids: selectedAlerts.value })
         fetchAlerts(pagination.value.page)
       } catch (error) {
         console.error(error)
@@ -151,11 +209,6 @@ export default {
       return labels[status] || status
     }
 
-    const formatDate = (date) => {
-      if (!date) return '-'
-      return new Date(date).toLocaleString('ja-JP')
-    }
-
     onMounted(() => fetchAlerts())
 
     return {
@@ -163,14 +216,20 @@ export default {
       pagination,
       selectedStatus,
       selectedType,
+      selectedAlerts,
+      isAllSelected,
       search,
+      resetFilter,
       changePage,
+      toggleAll,
       acknowledge,
       resolve,
+      bulkAcknowledge,
+      bulkResolve,
       typeLabel,
       statusBadgeClass,
       statusLabel,
-      formatDate
+      formatDateTime
     }
   }
 }

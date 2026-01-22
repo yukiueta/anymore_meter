@@ -2,7 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import path from 'path';
 import inject from '@rollup/plugin-inject';
-import visualizer from 'rollup-plugin-visualizer';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // 環境変数をチェック
 const report = process.env.VITE_REPORT === 'true';

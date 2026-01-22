@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import TopMenu from '../layouts/top-menu/Main.vue'
-import Dashboard from '../views/dashboard/Main.vue'
 import Login from '../views/login/Main.vue'
 import ErrorPage from '../views/error-page/Main.vue'
 
@@ -10,10 +9,8 @@ const routes = [
     component: TopMenu,
     children: [
       {
-        path: '/',
-        name: 'dashboard',
-        component: Dashboard,
-        meta: { internal: true }
+        path: '',
+        redirect: '/meter/list'
       },
       {
         path: 'meter/list',
@@ -40,15 +37,21 @@ const routes = [
         meta: { internal: true }
       },
       {
-        path: 'user/list',
-        name: 'user-list',
-        component: () => import('../views/user/user-list/Main.vue'),
+        path: 'billing/summary',
+        name: 'billing-summary',
+        component: () => import('../views/billing/billing-summary-list/Main.vue'),
         meta: { internal: true }
       },
       {
-        path: 'user/detail/:pk',
-        name: 'user-detail',
-        component: () => import('../views/user/user-detail/Main.vue'),
+        path: 'billing/calendar',
+        name: 'billing-calendar',
+        component: () => import('../views/billing/calendar-list/Main.vue'),
+        meta: { internal: true }
+      },
+      {
+        path: 'user/list',
+        name: 'user-list',
+        component: () => import('../views/user/user-list/Main.vue'),
         meta: { internal: true }
       },
     ]
@@ -76,8 +79,6 @@ const router = createRouter({
     return savedPosition || { left: 0, top: 0 }
   }
 })
-
-import store from '@/store'
 
 router.beforeEach(async (to, from, next) => {
   const publicPages = ['/login', '/error-page']

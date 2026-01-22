@@ -2,12 +2,6 @@ const state = () => {
   return {
     menu: [
       {
-        icon: 'AirplayIcon',
-        pageName: 'dashboard',
-        title: 'ダッシュボード',
-        category: 'dashboard'
-      },
-      {
         icon: 'CpuIcon',
         pageName: 'meter-list',
         title: 'メーター',
@@ -16,14 +10,26 @@ const state = () => {
       {
         icon: 'BarChart2Icon',
         pageName: 'reading-list',
-        title: 'データ',
+        title: '30分データ',
         category: 'readings'
+      },
+      {
+        icon: 'BarChartIcon',
+        pageName: 'billing-summary',
+        title: '請求データ',
+        category: 'billing'  // ← 追加
       },
       {
         icon: 'AlertTriangleIcon',
         pageName: 'alert-list',
         title: 'アラート',
         category: 'alerts'
+      },
+      {
+        icon: 'CalendarIcon',
+        pageName: 'billing-calendar',
+        title: '検針日',
+        category: 'billing'  // ← 追加
       },
       {
         icon: 'UsersIcon',

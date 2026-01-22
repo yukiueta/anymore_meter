@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/keys/', include('app.keys.urls')),
     path('api/alerts/', include('app.alerts.urls')),
     path('api/users/', include('app.user.urls')),
+    path('api/billing/', include('app.billing.urls')),
     path('api/mypage/', include('app.mypage.urls')),
     path('api/auth/', include('djoser.urls.jwt')),
     path('api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
