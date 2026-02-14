@@ -53,8 +53,8 @@ def decrypt_data(ciphertext: bytes, key: str) -> bytes:
     
     cipher = AES.new(key_bytes, AES.MODE_CBC, INITIAL_VECTOR)
     decrypted = cipher.decrypt(ciphertext)
-    return unpad(decrypted, AES.block_size)
-
+    # パディング除去しない（メーターは0x00パディングを使用）
+    return decrypted
 
 def encrypt_hex(plaintext_hex: str, key: str) -> str:
     """
