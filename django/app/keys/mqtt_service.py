@@ -31,22 +31,15 @@ def get_iot_client():
 
 
 def publish_to_meter(meter_id: str, payload_hex: str, encrypt_key: str = None) -> bool:
-    """
-    メーターにMQTTメッセージを送信
-    
-    Args:
-        meter_id: メーターID
-        payload_hex: 送信データ（HEX文字列）
-        encrypt_key: 暗号化キー（Noneの場合は平文）
-    
-    Returns:
-        成功/失敗
-    """
     topic = f'{meter_id}S2C'
     
     try:
+        logger.info(f'Plain payload before encryption: {payload_hex}')  # 追加
+        
         if encrypt_key:
             payload_hex = encrypt_hex(payload_hex, encrypt_key)
+        
+        logger.info(f'Encrypted payload: {payload_hex}')  # 追加
         
         client = get_iot_client()
         response = client.publish(
@@ -61,7 +54,6 @@ def publish_to_meter(meter_id: str, payload_hex: str, encrypt_key: str = None) -
     except Exception as e:
         logger.error(f'Failed to publish to {topic}: {e}')
         return False
-
 
 def send_key_response_new(meter_id: str, master_key: str, data_key: str) -> bool:
     """新規登録時の鍵交換応答を送信"""
