@@ -76,15 +76,15 @@ class MeterReceiveView(APIView):
         # 復号試行
         if meter_key:
             keys_to_try = [
+                ('default_key', DEFAULT_KEY),
                 ('data_key', meter_key.data_key),
                 ('master_key', meter_key.master_key),
-                ('default_key', DEFAULT_KEY),
             ]
         else:
             keys_to_try = [
                 ('default_key', DEFAULT_KEY),
             ]
-        
+
         decrypted_hex, used_key = try_decrypt(payload_hex, keys_to_try)
         
         if not decrypted_hex:
