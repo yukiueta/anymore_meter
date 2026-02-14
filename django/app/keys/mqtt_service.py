@@ -64,29 +64,20 @@ def publish_to_meter(meter_id: str, payload_hex: str, encrypt_key: str = None) -
 
 
 def send_key_response_new(meter_id: str, master_key: str, data_key: str) -> bool:
-    """
-    新規登録時の鍵交換応答を送信
-    default keyで暗号化
-    """
-    payload = build_key_response_new(master_key, data_key)
+    """新規登録時の鍵交換応答を送信"""
+    payload = build_key_response_new(meter_id, master_key, data_key)
     return publish_to_meter(meter_id, payload, DEFAULT_KEY)
 
 
 def send_key_response_reconnect(meter_id: str, new_data_key: str, master_key: str) -> bool:
-    """
-    再接続時の鍵交換応答を送信
-    master keyで暗号化
-    """
-    payload = build_key_response_reconnect(new_data_key)
+    """再接続時の鍵交換応答を送信"""
+    payload = build_key_response_reconnect(meter_id, new_data_key)
     return publish_to_meter(meter_id, payload, master_key)
 
 
 def send_key_confirm(meter_id: str, data_key: str) -> bool:
-    """
-    鍵交換完了確認を送信
-    data keyで暗号化
-    """
-    payload = build_key_confirm()
+    """鍵交換完了確認を送信"""
+    payload = build_key_confirm(meter_id)
     return publish_to_meter(meter_id, payload, data_key)
 
 

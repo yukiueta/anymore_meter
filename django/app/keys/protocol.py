@@ -232,36 +232,99 @@ class MessageBuilder:
         return bytes(self.data)
 
 
-def build_key_response_new(master_key: str, data_key: str) -> str:
+def encode_meter_id_bcd(meter_id: str) -> bytes:
+    """メーターIDをBCD 6バイトにエンコード"""
+    # 例: J239000046 -> 4A 23 90 00 04 6F
+    if len(meter_id) < 2:
+        return b'\x00' * 6
+    
+    first_char = meter_id[0].encode('ascii')  # 'J' -> 0x4A
+    digits = meter_id[1:]  # '239000046'
+    
+    # 10桁に満たない場合は末尾に'F'を追加
+    if len(digits) < 10:
+        digits = digits + 'F' * (10 - len(digits))
+    
+    # 2桁ずつBCDに変換
+    bcd_bytes = bytes([
+        int(digits[0:2], 16),  # 23
+        int(digits[2:4], 16),  # 90
+        int(digits[4:6], 16),  # 00
+        int(digits[6:8], 16),  # 04
+        int(digits[8:10], 16), # 6F
+    ])
+    
+    return first_char + bcd_bytes
+
+
+def build_key_response_new(meter_id: str, master_key: str, data_key: str) -> str:
     """新規登録時の鍵交換応答を生成"""
     builder = MessageBuilder()
-    builder.write_bytes(bytes.fromhex('000000000B'))
+    
+    # Command Type: class=110 (PV Meter), command=00000 (Key Exchange)
+    # Bit#7-5: 110, Bit#4-0: 00000 -> 0xC0
+    builder.write_uint8(0xC0)
+    
+    # Meter ID (6 bytes BCD)
+    builder.write_bytes(encode_meter_id_bcd(meter_id))
+    
+    # Parameter: 1 = 新規登録応答
     builder.write_uint8(1)
+    
+    # Data: Master Key (16 bytes) + Data Key (16 bytes)
     payload = master_key.encode('ascii') + data_key.encode('ascii')
+    
+    # Data Length (2 bytes, little endian)
     builder.write_uint16_le(len(payload))
+    
+    # Data
     builder.write_bytes(payload)
+    
     return builder.to_hex()
 
 
-def build_key_response_reconnect(data_key: str) -> str:
+def build_key_response_reconnect(meter_id: str, new_data_key: str) -> str:
     """再接続時の鍵交換応答を生成"""
     builder = MessageBuilder()
-    builder.write_bytes(bytes.fromhex('000000000B'))
+    
+    # Command Type: 0xC0
+    builder.write_uint8(0xC0)
+    
+    # Meter ID (6 bytes BCD)
+    builder.write_bytes(encode_meter_id_bcd(meter_id))
+    
+    # Parameter: 0 = 再接続応答
     builder.write_uint8(0)
-    payload = data_key.encode('ascii')
+    
+    # Data: Data Key (16 bytes)
+    payload = new_data_key.encode('ascii')
+    
+    # Data Length (2 bytes, little endian)
     builder.write_uint16_le(len(payload))
+    
+    # Data
     builder.write_bytes(payload)
+    
     return builder.to_hex()
 
 
-def build_key_confirm() -> str:
+def build_key_confirm(meter_id: str) -> str:
     """鍵交換完了確認を生成"""
     builder = MessageBuilder()
-    builder.write_bytes(bytes.fromhex('000000000B'))
+    
+    # Command Type: 0xC0
+    builder.write_uint8(0xC0)
+    
+    # Meter ID (6 bytes BCD)
+    builder.write_bytes(encode_meter_id_bcd(meter_id))
+    
+    # Parameter: 2 = ACK
     builder.write_uint8(2)
+    
+    # Data Length: 0
     builder.write_uint16_le(0)
+    
     return builder.to_hex()
-
 
 def build_b_route_config(b_route_id: str, password: str) -> str:
     """Bルート設定コマンドを生成"""
