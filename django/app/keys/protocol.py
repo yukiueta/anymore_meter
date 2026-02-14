@@ -262,7 +262,6 @@ def build_key_response_new(meter_id: str, master_key: str, data_key: str) -> str
     builder = MessageBuilder()
     
     # Command Type: class=110 (PV Meter), command=00000 (Key Exchange)
-    # Bit#7-5: 110, Bit#4-0: 00000 -> 0xC0
     builder.write_uint8(0xC0)
     
     # Meter ID (6 bytes BCD)
@@ -274,8 +273,8 @@ def build_key_response_new(meter_id: str, master_key: str, data_key: str) -> str
     # Data: Master Key (16 bytes) + Data Key (16 bytes)
     payload = master_key.encode('ascii') + data_key.encode('ascii')
     
-    # Data Length (2 bytes, little endian)
-    builder.write_uint16_le(len(payload))
+    # Data Length (1 byte) ← ここを修正！
+    builder.write_uint8(len(payload))
     
     # Data
     builder.write_bytes(payload)
@@ -296,13 +295,8 @@ def build_key_response_reconnect(meter_id: str, new_data_key: str) -> str:
     # Parameter: 0 = 再接続応答
     builder.write_uint8(0)
     
-    # Data: Data Key (16 bytes)
+    # Data: Data Key (16 bytes) - Data Lengthなし
     payload = new_data_key.encode('ascii')
-    
-    # Data Length (2 bytes, little endian)
-    builder.write_uint16_le(len(payload))
-    
-    # Data
     builder.write_bytes(payload)
     
     return builder.to_hex()
@@ -318,13 +312,11 @@ def build_key_confirm(meter_id: str) -> str:
     # Meter ID (6 bytes BCD)
     builder.write_bytes(encode_meter_id_bcd(meter_id))
     
-    # Parameter: 2 = ACK
+    # Parameter: 2 = ACK - 追加データなし
     builder.write_uint8(2)
     
-    # Data Length: 0
-    builder.write_uint16_le(0)
-    
     return builder.to_hex()
+
 
 def build_b_route_config(b_route_id: str, password: str) -> str:
     """Bルート設定コマンドを生成"""
