@@ -261,8 +261,9 @@ def build_key_response_new(meter_id: str, master_key: str, data_key: str) -> str
     """新規登録時の鍵交換応答を生成"""
     builder = MessageBuilder()
     
-    # Command Type: class=110 (PV Meter), command=00000 (Key Exchange)
-    builder.write_uint8(0xC0)
+    # Command Type: class=001 (Power Meter), command=00000 (Key Exchange)
+    # Bit#7-5: 001, Bit#4-0: 00000 -> 0x20
+    builder.write_uint8(0x20)
     
     # Meter ID (6 bytes BCD)
     builder.write_bytes(encode_meter_id_bcd(meter_id))
@@ -273,7 +274,7 @@ def build_key_response_new(meter_id: str, master_key: str, data_key: str) -> str
     # Data: Master Key (16 bytes) + Data Key (16 bytes)
     payload = master_key.encode('ascii') + data_key.encode('ascii')
     
-    # Data Length (1 byte) ← ここを修正！
+    # Data Length (1 byte)
     builder.write_uint8(len(payload))
     
     # Data
@@ -286,8 +287,8 @@ def build_key_response_reconnect(meter_id: str, new_data_key: str) -> str:
     """再接続時の鍵交換応答を生成"""
     builder = MessageBuilder()
     
-    # Command Type: 0xC0
-    builder.write_uint8(0xC0)
+    # Command Type: class=001 (Power Meter), command=00000 (Key Exchange)
+    builder.write_uint8(0x20)
     
     # Meter ID (6 bytes BCD)
     builder.write_bytes(encode_meter_id_bcd(meter_id))
@@ -306,8 +307,8 @@ def build_key_confirm(meter_id: str) -> str:
     """鍵交換完了確認を生成"""
     builder = MessageBuilder()
     
-    # Command Type: 0xC0
-    builder.write_uint8(0xC0)
+    # Command Type: class=001 (Power Meter), command=00000 (Key Exchange)
+    builder.write_uint8(0x20)
     
     # Meter ID (6 bytes BCD)
     builder.write_bytes(encode_meter_id_bcd(meter_id))
