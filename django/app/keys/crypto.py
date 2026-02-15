@@ -15,24 +15,17 @@ DEFAULT_KEY = '69aF7&3KY0_kk89@'
 
 
 def encrypt_data(plaintext: bytes, key: str) -> bytes:
-    """
-    AES-128-CBC で暗号化
-    
-    Args:
-        plaintext: 平文データ（bytes）
-        key: 暗号鍵（16文字ASCII）
-    
-    Returns:
-        暗号化データ（bytes）
-    """
     key_bytes = key.encode('ascii') if isinstance(key, str) else key
     
     if len(key_bytes) != 16:
         raise ValueError(f'Key must be 16 bytes, got {len(key_bytes)}')
     
+    # ゼロパディング（PKCS7ではなく）
+    if len(plaintext) % 16 != 0:
+        plaintext = plaintext + b'\x00' * (16 - len(plaintext) % 16)
+    
     cipher = AES.new(key_bytes, AES.MODE_CBC, INITIAL_VECTOR)
-    padded = pad(plaintext, AES.block_size)
-    return cipher.encrypt(padded)
+    return cipher.encrypt(plaintext)
 
 
 def decrypt_data(ciphertext: bytes, key: str) -> bytes:
