@@ -74,19 +74,7 @@ def send_key_confirm(meter_id: str, data_key: str) -> bool:
 
 
 def send_b_route_config(meter_id: str, b_route_id: str, password: str, data_key: str) -> bool:
-    """
-    Bルート設定コマンドを送信
-    
-    Args:
-        meter_id: メーターID
-        b_route_id: BルートID（空文字で無効化）
-        password: パスワード（空文字で無効化）
-        data_key: 暗号化用データキー
-    
-    Returns:
-        成功/失敗
-    """
-    payload = build_b_route_config(b_route_id, password)
+    payload = build_b_route_config(meter_id, b_route_id, password)  # meter_id追加
     return publish_to_meter(meter_id, payload, data_key)
 
 

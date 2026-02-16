@@ -319,23 +319,26 @@ def build_key_confirm(meter_id: str) -> str:
     return builder.to_hex()
 
 
-def build_b_route_config(b_route_id: str, password: str) -> str:
+def build_b_route_config(meter_id: str, b_route_id: str, password: str) -> str:
     """Bルート設定コマンドを生成"""
     builder = MessageBuilder()
-    builder.write_bytes(bytes.fromhex('0000111B00'))
     
-    if not b_route_id or not password:
-        builder.write_uint8(1)
-        payload = b'0' + b'0'
-        builder.write_uint16_le(len(payload))
-        builder.write_bytes(payload)
-    else:
-        builder.write_uint8(1)
-        id_bytes = b_route_id.encode('ascii')[:32].ljust(32, b'\x00')
-        pw_bytes = password.encode('ascii')[:32].ljust(32, b'\x00')
-        payload = id_bytes + pw_bytes
-        builder.write_uint16_le(len(payload))
-        builder.write_bytes(payload)
+    # Command Type: class=001 (Power Meter), command=00111 (B-route)
+    # Bit#7-5: 001, Bit#4-0: 00111 -> 0x27
+    builder.write_uint8(0x27)
+    
+    # Meter ID (6 bytes BCD)
+    builder.write_bytes(encode_meter_id_bcd(meter_id))
+    
+    # Parameter: 1 = Set B-route ID/PW
+    builder.write_uint8(1)
+    
+    # Data: ID (32 bytes) + Password (12 bytes)
+    id_bytes = b_route_id.encode('ascii')[:32].ljust(32, b'\x00')
+    pw_bytes = password.encode('ascii')[:12].ljust(12, b'\x00')
+    payload = id_bytes + pw_bytes
+    
+    builder.write_bytes(payload)
     
     return builder.to_hex()
 
