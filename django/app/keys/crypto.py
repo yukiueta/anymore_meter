@@ -84,19 +84,21 @@ def decrypt_hex(ciphertext_hex: str, key: str) -> str:
 def try_decrypt(ciphertext_hex: str, keys: list) -> tuple:
     """
     複数の鍵で復号を試みる
-    
-    Args:
-        ciphertext_hex: 暗号化HEX文字列
-        keys: 試す鍵のリスト [('key_name', 'key_value'), ...]
-    
-    Returns:
-        (平文HEX, 使用した鍵名) or (None, None)
+    復号後のパケットタイプが有効かどうかで判定
     """
     for key_name, key_value in keys:
         try:
             decrypted = decrypt_hex(ciphertext_hex, key_value)
-            logger.debug(f'Decryption succeeded with {key_name}')
-            return decrypted, key_name
+            
+            # パケットタイプが有効か確認（0-15の範囲）
+            if len(decrypted) >= 4:
+                meter_status = int(decrypted[:4], 16)
+                packet_type = (meter_status >> 9) & 0x0F
+                # 有効なパケットタイプ: 1,2,3,4,5,10,11
+                if packet_type in (1, 2, 3, 4, 5, 10, 11):
+                    logger.debug(f'Decryption succeeded with {key_name}')
+                    return decrypted, key_name
+            
         except Exception as e:
             logger.debug(f'Decryption failed with {key_name}: {e}')
             continue
