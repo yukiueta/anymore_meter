@@ -128,20 +128,26 @@ class MeterReceiveView(APIView):
             master_key = generate_key()
             data_key = generate_key()
             
-            if meter_key:
-                meter_key.master_key = master_key
-                meter_key.data_key = data_key
-                meter_key.key_version += 1
-                meter_key.save()
-            else:
-                meter_key = MeterKey.objects.create(
-                    meter=meter,
-                    master_key=master_key,
-                    data_key=data_key,
-                )
+            logger.info(f'Generated keys for {meter.meter_id}: master={master_key}, data={data_key}')  # 追加
             
-            success = send_key_response_new(meter.meter_id, master_key, data_key)
+            try:  # 追加
+                if meter_key:
+                    meter_key.master_key = master_key
+                    meter_key.data_key = data_key
+                    meter_key.key_version += 1
+                    meter_key.save()
+                    logger.info(f'Updated meter_key for {meter.meter_id}')  # 追加
+                else:
+                    meter_key = MeterKey.objects.create(
+                        meter=meter,
+                        master_key=master_key,
+                        data_key=data_key,
+                    )
+                    logger.info(f'Created meter_key for {meter.meter_id}, id={meter_key.id}')  # 追加
+            except Exception as e:  # 追加
+                logger.error(f'Failed to save meter_key: {e}')  # 追加
             
+            success = send_key_response_new(meter.meter_id, master_key, data_key)            
             return Response({
                 'status': 'key_exchange_initiated',
                 'type': 'new_registration',
