@@ -330,14 +330,15 @@ def build_b_route_config(meter_id: str, b_route_id: str, password: str) -> str:
     # Meter ID (6 bytes BCD)
     builder.write_bytes(encode_meter_id_bcd(meter_id))
     
-    # Parameter: 1 = Set B-route ID/PW
-    builder.write_uint8(1)
-    
-    # Data: ID (32 bytes) + Password (12 bytes)
+    # Data: ID (32 bytes) + Password (up to 32 bytes)
     id_bytes = b_route_id.encode('ascii')[:32].ljust(32, b'\x00')
-    pw_bytes = password.encode('ascii')[:12].ljust(12, b'\x00')
+    pw_bytes = password.encode('ascii')[:32].ljust(32, b'\x00')
     payload = id_bytes + pw_bytes
     
+    # Data length (1 byte)
+    builder.write_uint8(len(payload))
+    
+    # Data
     builder.write_bytes(payload)
     
     return builder.to_hex()
