@@ -178,6 +178,62 @@ class MessageParser:
             'event_code': event_code,
         }
 
+    def parse_multi_interval(self) -> dict:
+        """30分値マルチパケットのパース (1010b)
+        
+        仕様書P.21:
+        Header(2bytes) + MeterID(6bytes) + DataType(1byte) + Count(1byte)
+        + [UnixTS(4) + Import(4) + Export(4) + Pulse(4) + RB_Import(4) + RB_Export(4)] × N
+        + 終端(000000000000)
+        """
+        header = self.parse_header()
+        
+        # Data type (1 byte): 0 = w/o voltage, 1 = w/ voltage
+        data_type = self.read_uint8()
+        
+        # 繰り返し数 (1 byte)
+        count = self.read_uint8()
+        
+        logger.info(f'Multi-interval: data_type={data_type}, count={count}')
+        
+        readings = []
+        for i in range(count):
+            if self.pos + 24 > len(self.data):
+                break
+            
+            unix_ts = self.read_uint32_be()
+            
+            # 終端判定 (タイムスタンプが0)
+            if unix_ts == 0:
+                break
+            
+            try:
+                timestamp = datetime.fromtimestamp(unix_ts)
+            except (ValueError, OSError):
+                timestamp = None
+            
+            import_kwh = Decimal(self.read_uint32_be()) / 100
+            export_kwh = Decimal(self.read_uint32_be()) / 100
+            pulse_count = self.read_uint32_be()
+            route_b_import_kwh = Decimal(self.read_uint32_be()) / 100
+            route_b_export_kwh = Decimal(self.read_uint32_be()) / 100
+            
+            readings.append({
+                'timestamp': timestamp,
+                'import_kwh': import_kwh,
+                'export_kwh': export_kwh,
+                'pulse_count': pulse_count,
+                'route_b_import_kwh': route_b_import_kwh,
+                'route_b_export_kwh': route_b_export_kwh,
+            })
+        
+        return {
+            **header,
+            'data_type': data_type,
+            'count': count,
+            'readings': readings,
+        }
+
 
 def get_packet_type(hex_data: str) -> int:
     """電文からパケットタイプを抽出"""

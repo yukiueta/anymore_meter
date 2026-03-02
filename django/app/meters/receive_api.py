@@ -21,6 +21,7 @@ from app.keys.protocol import (
     PACKET_TYPE_KEY_EXCHANGE,
     PACKET_TYPE_INSTANT,
     PACKET_TYPE_INTERVAL,
+    PACKET_TYPE_MULTI,
     PACKET_TYPE_EVENT,
 )
 from app.keys.mqtt_service import (
@@ -102,6 +103,8 @@ class MeterReceiveView(APIView):
             return self.handle_key_exchange(meter, meter_key, decrypted_hex, used_key)
         elif packet_type in (PACKET_TYPE_INSTANT, PACKET_TYPE_INTERVAL):
             return self.handle_interval_data(meter, decrypted_hex)
+        elif packet_type == PACKET_TYPE_MULTI:                    # ← 追加
+            return self.handle_multi_interval(meter, decrypted_hex)  # ← 追加
         elif packet_type == PACKET_TYPE_EVENT:
             return self.handle_event_log(meter, decrypted_hex)
         else:
@@ -198,6 +201,45 @@ class MeterReceiveView(APIView):
         
         return Response({'status': 'unknown_key_exchange_type'})
     
+    def handle_multi_interval(self, meter, decrypted_hex):
+        """マルチパケット30分値データ処理 (1010b)"""
+        parser = MessageParser(decrypted_hex)
+        data = parser.parse_multi_interval()
+        
+        saved_count = 0
+        for reading_data in data['readings']:
+            if not reading_data['timestamp']:
+                continue
+            
+            reading, created = MeterReading.objects.update_or_create(
+                meter=meter,
+                timestamp=reading_data['timestamp'],
+                reading_type='interval',
+                defaults={
+                    'import_kwh': reading_data['import_kwh'],
+                    'export_kwh': reading_data['export_kwh'],
+                    'route_b_import_kwh': reading_data['route_b_import_kwh'],
+                    'route_b_export_kwh': reading_data['route_b_export_kwh'],
+                    'raw_data': decrypted_hex if saved_count == 0 else '',
+                }
+            )
+            saved_count += 1
+            logger.info(f'Saved multi-interval data: {meter.meter_id} @ {reading_data["timestamp"]}')
+        
+        meter.last_received_at = timezone.now()
+        if meter.status != 'active':
+            meter.status = 'active'
+        meter.save()
+        
+        logger.info(f'Multi-interval complete: {meter.meter_id}, {saved_count}/{data["count"]} readings saved')
+        
+        return Response({
+            'status': 'saved',
+            'type': 'multi_interval',
+            'count': data['count'],
+            'saved': saved_count,
+        })
+
     def handle_interval_data(self, meter, decrypted_hex):
         """30分値/瞬時値データ処理"""
         parser = MessageParser(decrypted_hex)
