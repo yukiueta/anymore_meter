@@ -336,8 +336,11 @@ def build_key_response_new(meter_id: str, master_key: str, data_key: str) -> str
     # Data
     builder.write_bytes(payload)
     
+    remainder = len(builder.data) % 16
+    if remainder != 0:
+        builder.write_bytes(b'\x00' * (16 - remainder))
+    
     return builder.to_hex()
-
 
 def build_key_response_reconnect(meter_id: str, new_data_key: str) -> str:
     """再接続時の鍵交換応答を生成"""
@@ -356,8 +359,11 @@ def build_key_response_reconnect(meter_id: str, new_data_key: str) -> str:
     payload = new_data_key.encode('ascii')
     builder.write_bytes(payload)
     
+    remainder = len(builder.data) % 16
+    if remainder != 0:
+        builder.write_bytes(b'\x00' * (16 - remainder))
+    
     return builder.to_hex()
-
 
 def build_key_confirm(meter_id: str) -> str:
     """鍵交換完了確認を生成"""
@@ -372,8 +378,11 @@ def build_key_confirm(meter_id: str) -> str:
     # Parameter: 2 = ACK - 追加データなし
     builder.write_uint8(2)
     
+    remainder = len(builder.data) % 16
+    if remainder != 0:
+        builder.write_bytes(b'\x00' * (16 - remainder))
+    
     return builder.to_hex()
-
 
 def build_b_route_config(meter_id: str, b_route_id: str, password: str) -> str:
     """Bルート設定コマンドを生成"""
@@ -397,8 +406,11 @@ def build_b_route_config(meter_id: str, b_route_id: str, password: str) -> str:
     # Data
     builder.write_bytes(payload)
     
+    remainder = len(builder.data) % 16
+    if remainder != 0:
+        builder.write_bytes(b'\x00' * (16 - remainder))
+    
     return builder.to_hex()
-
 
 def build_b_route_query() -> str:
     """Bルート設定取得コマンドを生成"""
