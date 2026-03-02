@@ -81,25 +81,35 @@ def decrypt_hex(ciphertext_hex: str, key: str) -> str:
     return decrypted.hex().upper()
 
 
-def try_decrypt(ciphertext_hex: str, keys: list) -> tuple:
+def try_decrypt(ciphertext_hex: str, keys: list, expected_meter_id: str = None) -> tuple:
     """
     複数の鍵で復号を試みる
-    復号後のパケットタイプが有効かどうかで判定
+    復号後のパケットタイプとmeter_idで判定
     """
     for key_name, key_value in keys:
         try:
             decrypted = decrypt_hex(ciphertext_hex, key_value)
             
-            # パケットタイプが有効か確認（0-15の範囲）
-            if len(decrypted) >= 4:
+            if len(decrypted) >= 16:
                 meter_status = int(decrypted[:4], 16)
                 packet_type = (meter_status >> 9) & 0x0F
-                # 有効なパケットタイプ: 1,2,3,4,5,10,11
-                if packet_type in (1, 2, 3, 4, 5, 10, 11):
-                    logger.debug(f'Decryption succeeded with {key_name}')
-                    return decrypted, key_name
+                
+                if packet_type not in (1, 2, 3, 4, 5, 10, 11):
+                    continue
+                
+                # meter_id検証（復号結果のbytes2-7がBCD meter_id）
+                if expected_meter_id:
+                    first_char = chr(int(decrypted[4:6], 16))
+                    digits = decrypted[6:15]
+                    decoded_id = first_char + digits
+                    if decoded_id != expected_meter_id:
+                        logger.info(f'Decryption with {key_name}: meter_id mismatch ({decoded_id} != {expected_meter_id}), skipping')
+                        continue
+                
+                logger.info(f'Decryption succeeded with {key_name}')
+                return decrypted, key_name
             
         except Exception as e:
-            logger.debug(f'Decryption failed with {key_name}: {e}')
+            logger.info(f'Decryption failed with {key_name}: {e}')
             continue
     return None, None

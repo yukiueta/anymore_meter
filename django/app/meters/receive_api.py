@@ -86,7 +86,7 @@ class MeterReceiveView(APIView):
                 ('default_key', DEFAULT_KEY),
             ]
 
-        decrypted_hex, used_key = try_decrypt(payload_hex, keys_to_try)
+        decrypted_hex, used_key = try_decrypt(payload_hex, keys_to_try, expected_meter_id=meter_id)
         
         if not decrypted_hex:
             logger.error(f'Failed to decrypt data from {meter_id}')
