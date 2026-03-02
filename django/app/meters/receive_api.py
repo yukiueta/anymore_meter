@@ -182,8 +182,10 @@ class MeterReceiveView(APIView):
         
         elif param == 2:
             # ACK
+            is_new_registration = False
             if meter_key:
                 if not meter_key.registered_at:
+                    is_new_registration = True
                     meter_key.registered_at = timezone.now()
                 meter_key.last_key_exchange = timezone.now()
                 meter_key.save()
@@ -192,13 +194,14 @@ class MeterReceiveView(APIView):
             meter.registered_at = meter.registered_at or timezone.now()
             meter.save()
             
-            if meter_key:
+            # 再接続時のみ確認応答を送信（初回登録はACKで完了）
+            if meter_key and not is_new_registration:
                 send_key_confirm(meter.meter_id, meter_key.data_key)
             
             return Response({
                 'status': 'key_exchange_completed',
             })
-        
+
         return Response({'status': 'unknown_key_exchange_type'})
     
     def handle_multi_interval(self, meter, decrypted_hex):
