@@ -7,8 +7,7 @@
         <label class="am-filter-label">ステータス</label>
         <select v-model="selectedStatus" class="am-filter-select">
           <option value="">全ステータス</option>
-          <option value="open">未対応</option>
-          <option value="acknowledged">確認済</option>
+          <option value="open">発生中</option>
           <option value="resolved">解決済</option>
         </select>
       </div>
@@ -17,7 +16,6 @@
         <select v-model="selectedType" class="am-filter-select">
           <option value="">全種別</option>
           <option value="communication">通信途絶</option>
-          <option value="data_missing">データ欠損</option>
           <option value="anomaly">異常値</option>
         </select>
       </div>
@@ -26,29 +24,17 @@
         <button class="am-btn am-btn-primary" @click="search">検索</button>
       </div>
     </div>
-    
-    <!-- 一括操作 -->
-    <div v-if="selectedAlerts.length > 0" class="mb-4 p-4 bg-blue-50 rounded-lg flex items-center justify-between">
-      <span class="text-blue-800">{{ selectedAlerts.length }}件選択中</span>
-      <div class="flex gap-2">
-        <button class="am-btn am-btn-sm am-btn-secondary" @click="bulkAcknowledge">一括確認</button>
-        <button class="am-btn am-btn-sm am-btn-success" @click="bulkResolve">一括解決</button>
-        <button class="am-btn am-btn-sm am-btn-ghost" @click="selectedAlerts = []">選択解除</button>
-      </div>
-    </div>
-    
+
     <div class="am-card">
       <table class="am-table">
         <thead>
           <tr>
-            <th class="w-10">
-              <input type="checkbox" @change="toggleAll" :checked="isAllSelected" />
-            </th>
             <th>日時</th>
             <th>メーターID</th>
             <th>種別</th>
             <th>ステータス</th>
             <th>メッセージ</th>
+            <th>メモ</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -60,10 +46,7 @@
               </div>
             </td>
           </tr>
-          <tr v-for="alert in alerts" :key="alert.id" :class="{ 'bg-blue-50': selectedAlerts.includes(alert.id) }">
-            <td>
-              <input type="checkbox" :value="alert.id" v-model="selectedAlerts" />
-            </td>
+          <tr v-for="alert in alerts" :key="alert.id">
             <td>{{ formatDateTime(alert.detected_at) }}</td>
             <td class="font-medium text-gray-900">{{ alert.meter_id }}</td>
             <td>
@@ -73,11 +56,9 @@
               <span :class="statusBadgeClass(alert.status)">{{ statusLabel(alert.status) }}</span>
             </td>
             <td class="max-w-xs truncate">{{ alert.message }}</td>
+            <td class="max-w-xs truncate text-gray-500 text-sm">{{ alert.note }}</td>
             <td>
-              <div class="flex gap-2">
-                <button v-if="alert.status === 'open'" class="am-btn am-btn-sm am-btn-secondary" @click="acknowledge(alert.id)">確認</button>
-                <button v-if="alert.status !== 'resolved'" class="am-btn am-btn-sm am-btn-success" @click="resolve(alert.id)">解決</button>
-              </div>
+              <button v-if="alert.status === 'open'" class="am-btn am-btn-sm am-btn-success" @click="openResolveModal(alert)">解決</button>
             </td>
           </tr>
         </tbody>
@@ -93,11 +74,35 @@
         />
       </div>
     </div>
+
+    <!-- 解決モーダル -->
+    <div v-if="showResolveModal" class="am-modal-overlay" @click.self="showResolveModal = false">
+      <div class="am-modal">
+        <div class="am-modal-header">
+          <div class="am-modal-title">アラート解決</div>
+          <button class="am-modal-close" @click="showResolveModal = false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="am-modal-body">
+          <div class="am-form-group">
+            <label class="am-label">メモ（任意）</label>
+            <textarea v-model="resolveNote" class="am-textarea" rows="3" placeholder="対応内容を記入してください"></textarea>
+          </div>
+        </div>
+        <div class="am-modal-footer">
+          <button class="am-btn am-btn-ghost" @click="showResolveModal = false">キャンセル</button>
+          <button class="am-btn am-btn-success" @click="resolve" :disabled="resolving">
+            {{ resolving ? '処理中...' : '解決' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import Pagination from '@/components/Pagination.vue'
 import { formatDateTime } from '@/utils/date'
@@ -109,30 +114,25 @@ export default {
     const pagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 0 })
     const selectedStatus = ref('')
     const selectedType = ref('')
-    const selectedAlerts = ref([])
-
-    const isAllSelected = computed(() => {
-      return alerts.value.length > 0 && alerts.value.every(a => selectedAlerts.value.includes(a.id))
-    })
+    const showResolveModal = ref(false)
+    const resolveNote = ref('')
+    const resolveTargetId = ref(null)
+    const resolving = ref(false)
 
     const fetchAlerts = async (page = 1) => {
       try {
         const params = { page, per_page: 20 }
         if (selectedStatus.value) params.status = selectedStatus.value
         if (selectedType.value) params.type = selectedType.value
-
         const response = await axios.get('/api/alerts/list/', { params })
         alerts.value = response.data.items
         pagination.value = response.data.pagination
-        selectedAlerts.value = []
       } catch (error) {
         console.error(error)
       }
     }
 
-    const search = () => {
-      fetchAlerts(1)
-    }
+    const search = () => fetchAlerts(1)
 
     const resetFilter = () => {
       selectedStatus.value = ''
@@ -140,72 +140,42 @@ export default {
       fetchAlerts(1)
     }
 
-    const changePage = (page) => {
-      fetchAlerts(page)
+    const changePage = (page) => fetchAlerts(page)
+
+    const openResolveModal = (alert) => {
+      resolveTargetId.value = alert.id
+      resolveNote.value = ''
+      showResolveModal.value = true
     }
 
-    const toggleAll = (e) => {
-      if (e.target.checked) {
-        selectedAlerts.value = alerts.value.map(a => a.id)
-      } else {
-        selectedAlerts.value = []
-      }
-    }
-
-    const acknowledge = async (id) => {
+    const resolve = async () => {
+      resolving.value = true
       try {
-        await axios.post(`/api/alerts/${id}/acknowledge/`)
+        await axios.post(`/api/alerts/${resolveTargetId.value}/resolve/`, { note: resolveNote.value })
+        showResolveModal.value = false
         fetchAlerts(pagination.value.page)
       } catch (error) {
         console.error(error)
-      }
-    }
-
-    const resolve = async (id) => {
-      try {
-        await axios.post(`/api/alerts/${id}/resolve/`)
-        fetchAlerts(pagination.value.page)
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
-    const bulkAcknowledge = async () => {
-      if (selectedAlerts.value.length === 0) return
-      try {
-        await axios.post('/api/alerts/bulk/acknowledge/', { alert_ids: selectedAlerts.value })
-        fetchAlerts(pagination.value.page)
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
-    const bulkResolve = async () => {
-      if (selectedAlerts.value.length === 0) return
-      try {
-        await axios.post('/api/alerts/bulk/resolve/', { alert_ids: selectedAlerts.value })
-        fetchAlerts(pagination.value.page)
-      } catch (error) {
-        console.error(error)
+      } finally {
+        resolving.value = false
       }
     }
 
     const typeLabel = (type) => {
-      const labels = { communication: '通信途絶', data_missing: 'データ欠損', anomaly: '異常値' }
+      const labels = { communication: '通信途絶', anomaly: '異常値' }
       return labels[type] || type
     }
 
     const statusBadgeClass = (status) => {
       const classes = {
         open: 'am-badge am-badge-danger',
-        acknowledged: 'am-badge am-badge-warning',
         resolved: 'am-badge am-badge-success'
       }
       return classes[status] || 'am-badge am-badge-gray'
     }
 
     const statusLabel = (status) => {
-      const labels = { open: '未対応', acknowledged: '確認済', resolved: '解決済' }
+      const labels = { open: '発生中', resolved: '解決済' }
       return labels[status] || status
     }
 
@@ -216,16 +186,14 @@ export default {
       pagination,
       selectedStatus,
       selectedType,
-      selectedAlerts,
-      isAllSelected,
+      showResolveModal,
+      resolveNote,
+      resolving,
       search,
       resetFilter,
       changePage,
-      toggleAll,
-      acknowledge,
+      openResolveModal,
       resolve,
-      bulkAcknowledge,
-      bulkResolve,
       typeLabel,
       statusBadgeClass,
       statusLabel,

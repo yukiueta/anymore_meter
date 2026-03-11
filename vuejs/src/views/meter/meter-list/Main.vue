@@ -84,7 +84,7 @@
             <td>
               <div class="flex gap-2">
                 <router-link :to="`/meter/detail/${meter.id}`" class="am-btn am-btn-sm am-btn-secondary">詳細</router-link>
-                <button class="am-btn am-btn-sm am-btn-danger" @click="deleteMeter(meter.id, meter.meter_id)">削除</button>
+                <button v-if="currentUser.permission === 'admin'" class="am-btn am-btn-sm am-btn-danger" @click="deleteMeter(meter.id, meter.meter_id)">削除</button>
               </div>
             </td>
           </tr>
@@ -174,7 +174,8 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useStore } from '@/store'
 import axios from 'axios'
 import Pagination from '@/components/Pagination.vue'
 import { formatDateTime } from '@/utils/date'
@@ -182,6 +183,8 @@ import { formatDateTime } from '@/utils/date'
 export default {
   components: { Pagination },
   setup() {
+    const store = useStore()
+    const currentUser = computed(() => store.getters['users/currentUser'])
     const meters = ref([])
     const pagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 0 })
     const showCreateModal = ref(false)
@@ -354,7 +357,7 @@ export default {
       meters, pagination, showCreateModal, showBulkModal, creating, bulkCreating,
       createError, bulkResult, bulkMeterIds, selectedStatus, selectedSetupStatus, searchQuery, newMeter,
       search, resetFilter, exportCsv, changePage, createMeter, bulkCreate, deleteMeter,
-      statusBadgeClass, statusLabel, setupBadgeClass, setupLabel, formatDateTime
+      statusBadgeClass, statusLabel, setupBadgeClass, setupLabel, formatDateTime, currentUser
     }
   }
 }

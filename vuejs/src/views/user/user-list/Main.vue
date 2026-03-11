@@ -2,7 +2,7 @@
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
       <h2 class="am-h2">ユーザー一覧</h2>
-      <button class="am-btn am-btn-primary" @click="openCreateModal">
+      <button v-if="currentUser.permission === 'admin'" class="am-btn am-btn-primary" @click="openCreateModal">
         + 新規登録
       </button>
     </div>
@@ -16,7 +16,7 @@
             <th>権限</th>
             <th>ステータス</th>
             <th>登録日</th>
-            <th>操作</th>
+            <th v-if="currentUser.permission === 'admin'">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -39,10 +39,10 @@
               </span>
             </td>
             <td>{{ formatDate(user.date_joined) }}</td>
-            <td>
+            <td v-if="currentUser.permission === 'admin'">
               <div class="flex gap-2">
-                <button class="am-btn am-btn-sm am-btn-secondary" @click="openEditModal(user)">編集</button>
-                <button class="am-btn am-btn-sm am-btn-danger" @click="deleteUser(user.id, user.username)">削除</button>
+                <button v-if="currentUser.permission === 'admin'" class="am-btn am-btn-sm am-btn-secondary" @click="openEditModal(user)">編集</button>
+                <button v-if="currentUser.permission === 'admin'" class="am-btn am-btn-sm am-btn-danger" @click="deleteUser(user.id, user.username)">削除</button>
               </div>
             </td>
           </tr>
@@ -149,14 +149,17 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
+import { useStore } from '@/store'
 import Pagination from '@/components/Pagination.vue'
 import { formatDate } from '@/utils/date'
 
 export default {
   components: { Pagination },
   setup() {
+    const store = useStore()
+    const currentUser = computed(() => store.getters['users/currentUser'])
     const users = ref([])
     const pagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 0 })
     
@@ -280,6 +283,7 @@ export default {
       changePage,
       openCreateModal,
       createUser,
+      currentUser,
       openEditModal,
       updateUser,
       deleteUser,

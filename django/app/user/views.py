@@ -29,9 +29,6 @@ class UserListView(APIView, PaginationMixin):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if not request.user.is_admin:
-            return Response({'error': 'admin required'}, status=status.HTTP_403_FORBIDDEN)
-        
         users = User.objects.order_by('-id')
         
         if request.GET.get('permission'):

@@ -444,7 +444,6 @@ class AnymoreApiAuthMixin:
     def check_api_key(self, request):
         key = request.headers.get('X-API-Key')
         expected = settings.ANYMORE_API_KEY
-        print(f"DEBUG: received key = '{key}', expected = '{expected}'")  # 追加
         return key and key == expected
 
 class BillingSummaryPendingView(APIView, AnymoreApiAuthMixin):
@@ -453,42 +452,30 @@ class BillingSummaryPendingView(APIView, AnymoreApiAuthMixin):
     permission_classes = []
 
     def get(self, request):
-        print("=" * 50)
-        print("DEBUG: BillingSummaryPendingView called")
-        
         if not self.check_api_key(request):
-            print("DEBUG: API key check failed")
             return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
         
-        print("DEBUG: API key check passed")
-        
         limit = int(request.GET.get('limit', 500))
-        print(f"DEBUG: limit = {limit}")
         
         # まず全件数を確認
         total_count = BillingSummary.objects.count()
-        print(f"DEBUG: Total BillingSummary count = {total_count}")
         
         pending_count = BillingSummary.objects.filter(fetch_status='pending').count()
-        print(f"DEBUG: Pending count (all) = {pending_count}")
         
         pending_with_project = BillingSummary.objects.filter(
             fetch_status='pending',
             project_id__isnull=False
         ).count()
-        print(f"DEBUG: Pending count (with project_id) = {pending_with_project}")
         
         # project_idがnullのpendingデータ
         pending_without_project = BillingSummary.objects.filter(
             fetch_status='pending',
             project_id__isnull=True
         ).count()
-        print(f"DEBUG: Pending count (without project_id) = {pending_without_project}")
         
         # fetch_statusの分布
         from django.db.models import Count
         status_dist = BillingSummary.objects.values('fetch_status').annotate(count=Count('id'))
-        print(f"DEBUG: fetch_status distribution = {list(status_dist)}")
         
         queryset = BillingSummary.objects.filter(
             fetch_status='pending',
@@ -499,7 +486,6 @@ class BillingSummaryPendingView(APIView, AnymoreApiAuthMixin):
         ids = []
         
         for item in queryset:
-            print(f"DEBUG: Processing item id={item.id}, project_id={item.project_id}, meter={item.meter.meter_id}")
             items.append({
                 'id': item.id,
                 'meter_id': item.meter.meter_id,
@@ -516,17 +502,11 @@ class BillingSummaryPendingView(APIView, AnymoreApiAuthMixin):
             })
             ids.append(item.id)
         
-        print(f"DEBUG: Found {len(items)} items to return")
-        print(f"DEBUG: IDs = {ids}")
-        
         if ids:
             updated = BillingSummary.objects.filter(id__in=ids).update(
                 fetch_status='processing',
                 fetch_started_at=timezone.now()
             )
-            print(f"DEBUG: Updated {updated} items to 'processing'")
-        
-        print("=" * 50)
         
         return Response({
             'items': items,
@@ -540,21 +520,11 @@ class BillingSummaryMarkProcessedView(APIView, AnymoreApiAuthMixin):
     permission_classes = []
 
     def post(self, request):
-        print("=" * 50)
-        print("DEBUG: BillingSummaryMarkProcessedView called")
-        
         if not self.check_api_key(request):
-            print("DEBUG: API key check failed")
             return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        print("DEBUG: API key check passed")
-        print(f"DEBUG: request.data = {request.data}")
         
         completed_ids = request.data.get('completed_ids', [])
         error_items = request.data.get('error_items', [])
-        
-        print(f"DEBUG: completed_ids = {completed_ids}")
-        print(f"DEBUG: error_items = {error_items}")
         
         now = timezone.now()
         
@@ -564,7 +534,6 @@ class BillingSummaryMarkProcessedView(APIView, AnymoreApiAuthMixin):
                 fetch_completed_at=now,
                 fetch_error_message=''
             )
-            print(f"DEBUG: Marked {updated} items as 'completed'")
         
         for item in error_items:
             updated = BillingSummary.objects.filter(id=item['id']).update(
@@ -572,9 +541,6 @@ class BillingSummaryMarkProcessedView(APIView, AnymoreApiAuthMixin):
                 fetch_completed_at=now,
                 fetch_error_message=item.get('message', '')[:1000]
             )
-            print(f"DEBUG: Marked item {item['id']} as 'error': {item.get('message', '')[:100]}")
-        
-        print("=" * 50)
         
         return Response({
             'completed_count': len(completed_ids),

@@ -2,6 +2,7 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 from .models import Alert
+from .slack import send_slack_alert
 from app.meters.models import Meter
 
 
@@ -9,23 +10,40 @@ from app.meters.models import Meter
 def check_communication_alerts():
     threshold = timezone.now() - timedelta(hours=2)
 
-    meters = Meter.objects.filter(
+    offline_meters = Meter.objects.filter(
         is_deleted=False,
         status='active'
     ).exclude(
         last_received_at__gte=threshold
     )
 
-    for meter in meters:
+    for meter in offline_meters:
         existing = Alert.objects.filter(
             meter=meter,
             alert_type='communication',
-            status__in=['open', 'acknowledged']
+            status='open'
         ).exists()
 
         if not existing:
+            message = f'メーター {meter.meter_id} からの通信が途絶えています。最終受信: {meter.last_received_at}'
             Alert.objects.create(
                 meter=meter,
                 alert_type='communication',
-                message=f'メーター {meter.meter_id} からの通信が途絶えています。最終受信: {meter.last_received_at}'
+                message=message
             )
+            send_slack_alert(meter.meter_id, 'communication', message)
+
+    recovered_meters = Meter.objects.filter(
+        is_deleted=False,
+        status='active',
+        last_received_at__gte=threshold
+    )
+
+    Alert.objects.filter(
+        meter__in=recovered_meters,
+        alert_type='communication',
+        status='open'
+    ).update(
+        status='resolved',
+        resolved_at=timezone.now()
+    )

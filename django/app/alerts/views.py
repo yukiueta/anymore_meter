@@ -88,6 +88,7 @@ class AlertResolveView(APIView):
             return Response({'error': 'not found'}, status=status.HTTP_404_NOT_FOUND)
         
         alert.status = 'resolved'
+        alert.resolved_at = timezone.now()
+        alert.note = request.data.get('note', '')
         alert.save()
         return Response({'status': 'resolved'})
-

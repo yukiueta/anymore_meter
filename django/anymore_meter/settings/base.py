@@ -215,3 +215,5 @@ ANYMORE_API_KEY = config('ANYMORE_API_KEY', default='')
 AWS_IOT_ENDPOINT = config('AWS_IOT_ENDPOINT', default='a3euups5uuz661-ats.iot.ap-northeast-1.amazonaws.com')
 AWS_IOT_REGION = config('AWS_IOT_REGION', default='ap-northeast-1')
 LAMBDA_API_KEY = config('LAMBDA_API_KEY', default='')
+
+SLACK_WEBHOOK_URL = config('SLACK_WEBHOOK_URL', default='')
