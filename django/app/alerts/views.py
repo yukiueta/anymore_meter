@@ -92,3 +92,16 @@ class AlertResolveView(APIView):
         alert.note = request.data.get('note', '')
         alert.save()
         return Response({'status': 'resolved'})
+
+class AlertUpdateNoteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            alert = Alert.objects.get(pk=pk)
+        except Alert.DoesNotExist:
+            return Response({'error': 'not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        alert.note = request.data.get('note', '')
+        alert.save()
+        return Response({'status': 'updated'})

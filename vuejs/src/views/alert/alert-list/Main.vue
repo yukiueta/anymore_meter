@@ -58,7 +58,10 @@
             <td class="max-w-xs truncate">{{ alert.message }}</td>
             <td class="max-w-xs truncate text-gray-500 text-sm">{{ alert.note }}</td>
             <td>
-              <button v-if="alert.status === 'open'" class="am-btn am-btn-sm am-btn-success" @click="openResolveModal(alert)">解決</button>
+              <div class="flex gap-2">
+                <button v-if="alert.status === 'open'" class="am-btn am-btn-sm am-btn-success" @click="openResolveModal(alert)">解決</button>
+                <button class="am-btn am-btn-sm am-btn-secondary" @click="openNoteModal(alert)">メモ</button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -98,6 +101,30 @@
         </div>
       </div>
     </div>
+
+    <!-- メモ編集モーダル -->
+    <div v-if="showNoteModal" class="am-modal-overlay" @click.self="showNoteModal = false">
+      <div class="am-modal">
+        <div class="am-modal-header">
+          <div class="am-modal-title">メモ編集</div>
+          <button class="am-modal-close" @click="showNoteModal = false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="am-modal-body">
+          <div class="am-form-group">
+            <label class="am-label">メモ</label>
+            <textarea v-model="editNote" class="am-textarea" rows="3" placeholder="メモを入力してください"></textarea>
+          </div>
+        </div>
+        <div class="am-modal-footer">
+          <button class="am-btn am-btn-ghost" @click="showNoteModal = false">キャンセル</button>
+          <button class="am-btn am-btn-primary" @click="updateNote" :disabled="updatingNote">
+            {{ updatingNote ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -114,10 +141,16 @@ export default {
     const pagination = ref({ page: 1, per_page: 20, total: 0, total_pages: 0 })
     const selectedStatus = ref('')
     const selectedType = ref('')
+
     const showResolveModal = ref(false)
     const resolveNote = ref('')
     const resolveTargetId = ref(null)
     const resolving = ref(false)
+
+    const showNoteModal = ref(false)
+    const editNote = ref('')
+    const noteTargetId = ref(null)
+    const updatingNote = ref(false)
 
     const fetchAlerts = async (page = 1) => {
       try {
@@ -144,7 +177,7 @@ export default {
 
     const openResolveModal = (alert) => {
       resolveTargetId.value = alert.id
-      resolveNote.value = ''
+      resolveNote.value = alert.note || ''
       showResolveModal.value = true
     }
 
@@ -158,6 +191,25 @@ export default {
         console.error(error)
       } finally {
         resolving.value = false
+      }
+    }
+
+    const openNoteModal = (alert) => {
+      noteTargetId.value = alert.id
+      editNote.value = alert.note || ''
+      showNoteModal.value = true
+    }
+
+    const updateNote = async () => {
+      updatingNote.value = true
+      try {
+        await axios.post(`/api/alerts/${noteTargetId.value}/update_note/`, { note: editNote.value })
+        showNoteModal.value = false
+        fetchAlerts(pagination.value.page)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        updatingNote.value = false
       }
     }
 
@@ -189,11 +241,16 @@ export default {
       showResolveModal,
       resolveNote,
       resolving,
+      showNoteModal,
+      editNote,
+      updatingNote,
       search,
       resetFilter,
       changePage,
       openResolveModal,
       resolve,
+      openNoteModal,
+      updateNote,
       typeLabel,
       statusBadgeClass,
       statusLabel,
