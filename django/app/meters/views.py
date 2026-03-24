@@ -190,6 +190,7 @@ class MeterSyncProjectView(APIView):
         assignment.project_name = data.get('project_name', '')
         assignment.zone = data.get('zone') or None
         assignment.base_billing_day = data.get('base_billing_day', '')
+        assignment.contract_capacity = data.get('contract_capacity', 0) or 0
         assignment.synced_at = timezone.now()
         assignment.save()
 
@@ -223,8 +224,10 @@ class MeterAssignView(APIView):
             project_name=request.data.get('project_name', ''),
             zone=request.data.get('zone'),
             base_billing_day=request.data.get('base_billing_day', ''),
+            contract_capacity=request.data.get('contract_capacity', 0) or 0,
             start_date=start_date
         )
+
         return Response(MeterAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
 
 class MeterUnassignView(APIView):

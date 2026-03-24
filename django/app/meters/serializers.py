@@ -9,7 +9,7 @@ class MeterAssignmentSerializer(serializers.ModelSerializer):
         model = MeterAssignment
         fields = [
             'id', 'project_id', 'project_name',
-            'zone', 'zone_display', 'base_billing_day',
+            'zone', 'zone_display', 'base_billing_day', 'contract_capacity',
             'start_date', 'end_date', 'synced_at', 'created_at'
         ]
 

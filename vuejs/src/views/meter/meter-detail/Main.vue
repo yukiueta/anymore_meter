@@ -125,6 +125,7 @@
                 <th>案件名</th>
                 <th>電力管轄</th>
                 <th>基準検針日</th>
+                <th>PV容量</th>
                 <th>期間</th>
                 <th>操作</th>
               </tr>
@@ -135,6 +136,7 @@
                 <td>{{ a.project_name || '-' }}</td>
                 <td>{{ a.zone_display || '-' }}</td>
                 <td>{{ a.base_billing_day || '-' }}</td>
+                <td>{{ a.contract_capacity ? a.contract_capacity + 'kW' : '-' }}</td>
                 <td>
                   {{ formatDate(a.start_date) }} 〜 {{ a.end_date ? formatDate(a.end_date) : '現在' }}
                   <span v-if="!a.end_date" class="am-badge am-badge-success ml-2">アクティブ</span>
@@ -491,7 +493,7 @@
               >
                 <div class="font-medium">{{ c.project_name }}</div>
                 <div class="text-sm text-gray-500">
-                  ID: {{ c.id }} | {{ c.project_id }} | {{ zoneLabel(c.zone) }}
+                  ID: {{ c.id }} | {{ c.project_id }} | {{ zoneLabel(c.zone) }} | {{ c.contract_capacity || 0 }}kW
                 </div>
               </div>
             </div>
@@ -1062,6 +1064,7 @@ export default {
         project_name: '',
         zone: null,
         base_billing_day: '',
+        contract_capacity: 0,
         start_date: new Date().toISOString().split('T')[0]
       }
       showAssignModal.value = true
@@ -1074,6 +1077,7 @@ export default {
         project_name: assignment.project_name || '',
         zone: assignment.zone || null,
         base_billing_day: assignment.base_billing_day || '',
+        contract_capacity: assignment.contract_capacity || 0,
         start_date: assignment.start_date || '',
         end_date: assignment.end_date || ''
       }
@@ -1161,6 +1165,7 @@ export default {
       assignForm.value.project_name = customer.project_name
       assignForm.value.zone = customer.zone || null
       assignForm.value.base_billing_day = customer.base_billing_day || ''
+      assignForm.value.contract_capacity = customer.contract_capacity || 0
     }
 
     const zoneLabel = (zone) => {
@@ -1192,6 +1197,7 @@ export default {
         assignmentEditForm.value.project_name = response.data.project_name || ''
         assignmentEditForm.value.zone = response.data.zone || null
         assignmentEditForm.value.base_billing_day = response.data.base_billing_day || ''
+        assignmentEditForm.value.contract_capacity = response.data.contract_capacity || 0
         fetchMeter()
       } catch (error) {
         assignmentEditError.value = error.response?.data?.error || '同期に失敗しました'

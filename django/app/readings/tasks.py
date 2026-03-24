@@ -7,7 +7,9 @@ from decimal import Decimal
 import logging
 
 from .models import MeterReading, DailySummary, MonthlySummary
-from app.meters.models import Meter
+from app.meters.models import Meter, MeterAssignment
+from app.alerts.models import Alert
+from app.alerts.slack import send_slack_alert
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +38,51 @@ def aggregate_daily(target_date=None):
     for meter in meters:
         if _aggregate_daily_for_meter(meter, target_date):
             count += 1
+            _check_daily_anomaly(meter, target_date)
 
     logger.info(f'Daily aggregation completed: {count} meters')
     return {'count': count, 'date': str(target_date)}
 
+
+def _check_daily_anomaly(meter, target_date):
+    """日次異常値チェック（稼働率0% or 100%超）"""
+    summary = DailySummary.objects.filter(meter=meter, date=target_date).first()
+    if not summary or summary.self_consumption_kwh is None:
+        return
+
+    assignment = MeterAssignment.objects.filter(
+        meter=meter,
+        end_date__isnull=True
+    ).first()
+    contract_capacity = assignment.contract_capacity if assignment and assignment.contract_capacity else None
+
+    anomalies = []
+
+    # 稼働率0%チェック（自家消費がゼロ）
+    if summary.self_consumption_kwh == Decimal('0') and summary.generation_kwh and summary.generation_kwh > Decimal('0'):
+        anomalies.append('自家消費量が0kWh（発電量あり）')
+
+    # 稼働率100%超チェック
+    if contract_capacity and contract_capacity > 0:
+        max_kwh = Decimal(str(contract_capacity)) * Decimal('24')
+        if summary.self_consumption_kwh > max_kwh:
+            anomalies.append(f'自家消費量({summary.self_consumption_kwh}kWh)が理論最大値({max_kwh}kWh)を超過')
+
+    for anomaly_message in anomalies:
+        existing = Alert.objects.filter(
+            meter=meter,
+            alert_type='anomaly',
+            status='open'
+        ).exists()
+        if not existing:
+            message = f'[異常値] メーター {meter.meter_id} {target_date}: {anomaly_message}'
+            Alert.objects.create(
+                meter=meter,
+                alert_type='anomaly',
+                message=message
+            )
+            send_slack_alert(meter.meter_id, 'anomaly', message)
+            logger.warning(message)
 
 def _aggregate_daily_for_meter(meter, target_date):
     """メーター単位の日次集計"""

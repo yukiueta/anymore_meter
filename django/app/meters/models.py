@@ -72,8 +72,9 @@ class MeterAssignment(models.Model):
     
     start_date = models.DateField(verbose_name='開始日')
     end_date = models.DateField(null=True, blank=True, verbose_name='終了日')
-    synced_at = models.DateTimeField(null=True, blank=True, verbose_name='最終同期日時')
-    
+    contract_capacity = models.FloatField(default=0, null=True, blank=True, verbose_name='PV容量(kW)')
+    synced_at = models.DateTimeField(null=True, blank=True, verbose_name='最終同期日時') 
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     history = HistoricalRecords()

@@ -161,6 +161,9 @@ def process_meter(assignment, period_start, period_end):
         period_end=period_end
     )
     
+    # 月次異常値チェック（前月比）
+    _check_monthly_anomaly(meter, assignment, result, prev_billing)
+
     # 保存
     BillingSummary.objects.create(
         meter=meter,
@@ -186,6 +189,48 @@ def process_meter(assignment, period_start, period_end):
     
     logger.info(f'請求集計作成: {meter.meter_id} {period_start}〜{period_end} total={result["total_kwh"]}kWh（自家消費量）')
     return True
+
+
+def _check_monthly_anomaly(meter, assignment, result, prev_billing):
+    """月次異常値チェック（前月比20倍以上 or 1/20以下）"""
+    # 今月実測がない場合はスキップ
+    if result['deemed_method'] != 'none':
+        return
+    # 前月がみなし値の場合はスキップ
+    if not prev_billing or prev_billing.deemed_method != 'none':
+        return
+
+    curr_kwh = result['total_kwh']
+    prev_kwh = prev_billing.total_kwh
+
+    if not prev_kwh or prev_kwh == Decimal('0'):
+        return
+
+    ratio = curr_kwh / prev_kwh
+
+    anomaly_message = None
+    if ratio >= Decimal('20'):
+        anomaly_message = f'自家消費量({curr_kwh}kWh)が前月({prev_kwh}kWh)の{ratio:.1f}倍（20倍超）'
+    elif ratio <= Decimal('0.05'):
+        anomaly_message = f'自家消費量({curr_kwh}kWh)が前月({prev_kwh}kWh)の{ratio:.2f}倍（1/20以下）'
+
+    if anomaly_message:
+        existing = Alert.objects.filter(
+            meter=meter,
+            alert_type='anomaly',
+            status='open'
+        ).exists()
+        if not existing:
+            from app.alerts.models import Alert
+            from app.alerts.slack import send_slack_alert
+            message = f'[異常値・前月比] メーター {meter.meter_id}: {anomaly_message}'
+            Alert.objects.create(
+                meter=meter,
+                alert_type='anomaly',
+                message=message
+            )
+            send_slack_alert(meter.meter_id, 'anomaly', message)
+            logger.warning(message)
 
 
 def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import, curr_export, period_start, period_end):
