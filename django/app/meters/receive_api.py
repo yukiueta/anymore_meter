@@ -58,7 +58,12 @@ class MeterReceiveView(APIView):
             return Response({'error': 'missing meter_id or payload'}, status=status.HTTP_400_BAD_REQUEST)
         
         logger.info(f'Received data from {meter_id}: {payload_hex[:50]}...')
-        
+
+        # 16バイト未満は暗号化データではないため無視
+        if len(bytes.fromhex(payload_hex)) < 16:
+            logger.info(f'Ignoring short payload from {meter_id}: {len(bytes.fromhex(payload_hex))} bytes')
+            return Response({'status': 'ignored', 'reason': 'short_payload'}, status=status.HTTP_200_OK)
+
         # メーター取得または作成
         meter, created = Meter.objects.get_or_create(
             meter_id=meter_id,
