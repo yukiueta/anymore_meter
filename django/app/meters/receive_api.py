@@ -194,9 +194,9 @@ class MeterReceiveView(APIView):
             meter.registered_at = meter.registered_at or timezone.now()
             meter.save()
             
-            # # 再接続時のみ確認応答を送信（初回登録はACKで完了）
-            # if meter_key and not is_new_registration:
-            #     send_key_confirm(meter.meter_id, meter_key.data_key)
+            # 再接続時のみ確認応答を送信（初回登録はACKで完了）
+            if meter_key and not is_new_registration:
+                send_key_confirm(meter.meter_id, meter_key.data_key)
             
             return Response({
                 'status': 'key_exchange_completed',
