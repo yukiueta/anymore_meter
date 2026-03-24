@@ -94,6 +94,7 @@ def try_decrypt(ciphertext_hex: str, keys: list, expected_meter_id: str = None) 
                 meter_status = int(decrypted[:4], 16)
                 packet_type = (meter_status >> 9) & 0x0F
                 
+                logger.info(f'try_decrypt {key_name}: packet_type={packet_type}, decrypted={decrypted[:40]}')
                 if packet_type not in (1, 2, 3, 4, 5, 10, 11):
                     continue
                 
