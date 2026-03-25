@@ -193,20 +193,12 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': '/var/log/django/app.log',
-            'when': 'midnight',
-            'backupCount': 30,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
     },
     'loggers': {
         'app': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
         },
     },
 }

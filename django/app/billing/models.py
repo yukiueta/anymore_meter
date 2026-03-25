@@ -69,13 +69,15 @@ class BillingSummary(models.Model):
     mid_actual_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='期間中最新累計値')
     mid_actual_date = models.DateField(null=True, blank=True, verbose_name='期間中最新データ日')
     
-    prev_used_value = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='前回使用値')
-    curr_used_value = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='今回使用値')
+    prev_used_import = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='前回発電量累積値')
+    curr_used_import = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='今回発電量累積値')
+    prev_used_export = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='前回売電量累積値')
+    curr_used_export = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='今回売電量累積値')
     
     actual_kwh = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='実測kWh')
     deemed_kwh = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='みなしkWh')
+    deemed_adjustment_kwh = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='みなし調整kWh')
     total_kwh = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='合計kWh')
-    
     deemed_method = models.CharField(max_length=10, choices=DEEMED_METHOD_CHOICES, default='none', verbose_name='みなし方法')
     
     is_first_billing = models.BooleanField(default=False, verbose_name='初回請求')

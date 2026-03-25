@@ -12,6 +12,7 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+from django.db.models import Sum
 import logging
 
 from app.billing.models import BillingCalendar, BillingSummary
@@ -21,8 +22,6 @@ from app.readings.models import MeterReading
 logger = logging.getLogger(__name__)
 
 DEEMED_DAILY_KWH = Decimal('6.0')
-DEEMED_MONTHLY_KWH = Decimal('180.0')
-
 
 @shared_task
 def generate_billing_summary(target_date=None):
@@ -112,6 +111,38 @@ def get_previous_billing_date(calendar):
     ).first()
 
 
+def get_deemed_daily_kwh(meter, period_end):
+    """
+    みなし日次単価を取得
+    直近12ヶ月の実測BillingSummary(deemed_method='none')のtotal_kwhの日次平均
+    実測データがない場合は6.0kWh/日を返す
+    """
+    from datetime import date
+    twelve_months_ago = period_end - timedelta(days=365)
+    
+    summaries = BillingSummary.objects.filter(
+        meter=meter,
+        deemed_method='none',
+        period_end__gte=twelve_months_ago,
+        period_end__lt=period_end,
+    )
+    
+    total_kwh = Decimal('0')
+    total_days = 0
+    
+    for s in summaries:
+        days = (s.period_end - s.period_start).days
+        if days > 0:
+            total_kwh += s.total_kwh
+            total_days += days
+    
+    if total_days == 0:
+        return DEEMED_DAILY_KWH
+    
+    daily_avg = total_kwh / Decimal(str(total_days))
+    return max(DEEMED_DAILY_KWH, daily_avg)
+
+
 def process_meter(assignment, period_start, period_end):
     """メーター単位で処理"""
     meter = assignment.meter
@@ -149,6 +180,9 @@ def process_meter(assignment, period_start, period_end):
     prev_import = Decimal(str(prev_reading.import_kwh)) if prev_reading and prev_reading.import_kwh else None
     prev_export = Decimal(str(prev_reading.route_b_export_kwh)) if prev_reading and prev_reading.route_b_export_kwh else None
     
+    # みなし日次単価を取得
+    deemed_daily_kwh = get_deemed_daily_kwh(meter, period_end)
+
     # パターン判定と計算
     result = calculate_billing(
         meter=meter,
@@ -158,9 +192,34 @@ def process_meter(assignment, period_start, period_end):
         curr_import=curr_import,
         curr_export=curr_export,
         period_start=period_start,
-        period_end=period_end
+        period_end=period_end,
+        deemed_daily_kwh=deemed_daily_kwh,
     )
     
+    # みなし調整計算（実測が取れた月のみ）
+    deemed_adjustment_kwh = Decimal('0')
+    if result['deemed_method'] == 'none' and not result['is_first_billing']:
+        # 過去の請求累計（今回分を除く）
+        past_total = BillingSummary.objects.filter(
+            meter=meter,
+            period_end__lte=period_start,
+        ).aggregate(total=Sum('total_kwh'))['total'] or Decimal('0')        
+        # 実際の自家消費累計 = 今回のcurr_used_import - 今回のcurr_used_export
+        # - 初回検針時のcurr_used_import - 初回検針時のcurr_used_export
+        first_billing = BillingSummary.objects.filter(
+            meter=meter,
+            is_first_billing=True
+        ).first()
+        
+        if first_billing:
+            actual_cumulative = (
+                result['curr_used_import'] - result['curr_used_export']
+            ) - (
+                first_billing.curr_used_import - first_billing.curr_used_export
+            )
+            billed_cumulative = past_total + result['total_kwh']
+            deemed_adjustment_kwh = actual_cumulative - billed_cumulative
+
     # 月次異常値チェック（前月比）
     _check_monthly_anomaly(meter, assignment, result, prev_billing)
 
@@ -177,10 +236,13 @@ def process_meter(assignment, period_start, period_end):
         curr_actual_value=curr_import,
         mid_actual_value=result['mid_actual_value'],
         mid_actual_date=result['mid_actual_date'],
-        prev_used_value=result['prev_used_value'],
-        curr_used_value=result['curr_used_value'],
+        prev_used_import=result['prev_used_import'],
+        curr_used_import=result['curr_used_import'],
+        prev_used_export=result['prev_used_export'],
+        curr_used_export=result['curr_used_export'],
         actual_kwh=result['actual_kwh'],
         deemed_kwh=result['deemed_kwh'],
+        deemed_adjustment_kwh=deemed_adjustment_kwh,
         total_kwh=result['total_kwh'],
         deemed_method=result['deemed_method'],
         is_first_billing=result['is_first_billing'],
@@ -215,14 +277,14 @@ def _check_monthly_anomaly(meter, assignment, result, prev_billing):
         anomaly_message = f'自家消費量({curr_kwh}kWh)が前月({prev_kwh}kWh)の{ratio:.2f}倍（1/20以下）'
 
     if anomaly_message:
+        from app.alerts.models import Alert
+        from app.alerts.slack import send_slack_alert
         existing = Alert.objects.filter(
             meter=meter,
             alert_type='anomaly',
             status='open'
         ).exists()
         if not existing:
-            from app.alerts.models import Alert
-            from app.alerts.slack import send_slack_alert
             message = f'[異常値・前月比] メーター {meter.meter_id}: {anomaly_message}'
             Alert.objects.create(
                 meter=meter,
@@ -233,7 +295,7 @@ def _check_monthly_anomaly(meter, assignment, result, prev_billing):
             logger.warning(message)
 
 
-def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import, curr_export, period_start, period_end):
+def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import, curr_export, period_start, period_end, deemed_daily_kwh=DEEMED_DAILY_KWH):
     """
     パターン判定と計算
     
@@ -250,8 +312,10 @@ def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import
     result = {
         'mid_actual_value': None,
         'mid_actual_date': None,
-        'prev_used_value': Decimal('0'),
-        'curr_used_value': Decimal('0'),
+        'prev_used_import': Decimal('0'),
+        'curr_used_import': Decimal('0'),
+        'prev_used_export': Decimal('0'),
+        'curr_used_export': Decimal('0'),
         'actual_kwh': Decimal('0'),
         'deemed_kwh': Decimal('0'),
         'total_kwh': Decimal('0'),
@@ -264,20 +328,21 @@ def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import
     
     # 前回の計算用値を決定
     if prev_billing:
-        prev_used_import = prev_billing.curr_used_value
-        prev_used_export = getattr(prev_billing, 'curr_used_export', None) or Decimal('0')
+        prev_used_import = prev_billing.curr_used_import
+        prev_used_export = prev_billing.curr_used_export
         is_first = False
     elif prev_import is not None:
         prev_used_import = prev_import
         prev_used_export = prev_export or Decimal('0')
-        is_first = False
+        is_first = True  # 過去のBillingSummaryがなければ初回
     else:
         prev_used_import = Decimal('0')
         prev_used_export = Decimal('0')
         is_first = True
     
     result['is_first_billing'] = is_first
-    result['prev_used_value'] = prev_used_import
+    result['prev_used_import'] = prev_used_import
+    result['prev_used_export'] = prev_used_export
     
     # 今回検針値がある場合
     if curr_import is not None:
@@ -292,7 +357,8 @@ def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import
         self_consumption = generation_delta - export_delta
         self_consumption = max(self_consumption, Decimal('0'))
         
-        result['curr_used_value'] = curr_import
+        result['curr_used_import'] = curr_import
+        result['curr_used_export'] = curr_used_export
         result['actual_kwh'] = self_consumption
         result['deemed_kwh'] = Decimal('0')
         result['total_kwh'] = self_consumption  # ★ 修正: 自家消費量が課金対象
@@ -328,12 +394,12 @@ def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import
         export_delta = mid_export - prev_used_export
         actual_self_consumption = max(generation_delta - export_delta, Decimal('0'))
         
-        # みなし分: 中間日から検針終了日までの日数 × 6kWh
+        # みなし分: 中間日から検針終了日までの日数 × みなし日次単価
         remaining_days = (period_end - mid_actual_date).days
-        deemed_kwh = DEEMED_DAILY_KWH * remaining_days
+        deemed_kwh = deemed_daily_kwh * remaining_days
         
-        result['prev_used_value'] = prev_used_import
-        result['curr_used_value'] = mid_import + deemed_kwh  # 計算用累計値
+        result['curr_used_import'] = mid_import
+        result['curr_used_export'] = mid_export
         result['actual_kwh'] = actual_self_consumption
         result['deemed_kwh'] = deemed_kwh
         result['total_kwh'] = actual_self_consumption + deemed_kwh  # ★ 自家消費量ベース
@@ -342,17 +408,19 @@ def calculate_billing(meter, prev_billing, prev_import, prev_export, curr_import
         
         return result
     
-    # パターン5, 6: 期間中データなし → 180kWh/月固定
-    result['deemed_kwh'] = DEEMED_MONTHLY_KWH
+    # パターン5, 6: 期間中データなし → みなし日次単価 × 日数
+    deemed_kwh = deemed_daily_kwh * days_in_period
+    result['deemed_kwh'] = deemed_kwh
     result['actual_kwh'] = Decimal('0')
-    result['total_kwh'] = DEEMED_MONTHLY_KWH  # みなし自家消費量
-    result['curr_used_value'] = prev_used_import + DEEMED_MONTHLY_KWH
+    result['total_kwh'] = deemed_kwh
+    result['curr_used_import'] = prev_used_import
+    result['curr_used_export'] = prev_used_export
     result['deemed_method'] = 'monthly'
     
     if is_first:
-        result['note'] = '初回検針かつデータ取得なし。180kWh/月でみなし計算'
+        result['note'] = f'初回検針かつデータ取得なし。{deemed_daily_kwh}kWh/日×{days_in_period}日でみなし計算'
     else:
-        result['note'] = '今回検針データなし。180kWh/月でみなし計算'
+        result['note'] = f'今回検針データなし。{deemed_daily_kwh}kWh/日×{days_in_period}日でみなし計算'
     
     return result
 
