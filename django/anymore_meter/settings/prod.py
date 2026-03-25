@@ -52,16 +52,24 @@ FRONT_URL = 'https://meter.anymore.co.jp/'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': '/var/log/django/error.log',
+            'formatter': 'verbose',
         },
         'app_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': '/var/log/django/app.log',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
@@ -73,7 +81,7 @@ LOGGING = {
         'app': {
             'handlers': ['app_file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
     },
 }
