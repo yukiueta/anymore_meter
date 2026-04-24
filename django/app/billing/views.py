@@ -63,7 +63,16 @@ class BillingCalendarImportView(APIView):
                     fiscal_year = int(row['fiscal_year'])
                     base_billing_day = row['base_billing_day'].zfill(2)
                     month = int(row['month'])
-                    actual_billing_date = datetime.strptime(row['actual_billing_date'], '%Y-%m-%d').date()
+                    raw_date = row['actual_billing_date'].strip().replace('/', '-')
+                    date_parts = raw_date.split('-')
+                    if len(date_parts) != 3:
+                        errors.append(f'行{row_num}: 日付フォーマットが不正です - {row["actual_billing_date"]}')
+                        continue
+                    try:
+                        actual_billing_date = datetime(int(date_parts[0]), int(date_parts[1]), int(date_parts[2])).date()
+                    except ValueError:
+                        errors.append(f'行{row_num}: 日付が不正です - {row["actual_billing_date"]}')
+                        continue
                     
                     if zone < 1 or zone > 10:
                         errors.append(f'行{row_num}: 電力管轄が不正です')
