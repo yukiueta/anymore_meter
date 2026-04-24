@@ -325,7 +325,7 @@ export default {
         const formData = new FormData()
         formData.append('file', importFile.value)
         
-        await axios.post('/api/billing/import/', formData, {
+        await axios.post('/api/billing/calendar/import/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
         
