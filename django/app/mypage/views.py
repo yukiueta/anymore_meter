@@ -96,13 +96,13 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
             if hour not in hourly_data:
                 hourly_data[hour] = {'gen': Decimal('0'), 'exp': Decimal('0')}
             
-            if prev and r.reading_kwh and prev.reading_kwh:
-                diff = r.reading_kwh - prev.reading_kwh
+            if prev and r.import_kwh is not None and prev.import_kwh is not None:
+                diff = r.import_kwh - prev.import_kwh
                 if diff > 0:
                     hourly_data[hour]['gen'] += diff
-            
-            if prev and r.grid_export_kwh and prev.grid_export_kwh:
-                diff = r.grid_export_kwh - prev.grid_export_kwh
+
+            if prev and r.export_kwh is not None and prev.export_kwh is not None:
+                diff = r.export_kwh - prev.export_kwh
                 if diff > 0:
                     hourly_data[hour]['exp'] += diff
             
