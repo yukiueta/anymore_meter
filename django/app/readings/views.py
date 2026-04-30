@@ -70,24 +70,49 @@ class ReadingExportView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        from datetime import datetime
+
+        meter_id = request.GET.get('meter_id')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # 期間バリデーション
+        if start_date and end_date:
+            try:
+                sd = datetime.strptime(start_date, '%Y-%m-%d').date()
+                ed = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({'error': '日付形式が不正です'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if sd > ed:
+                return Response({'error': '開始日は終了日以前を指定してください'}, status=status.HTTP_400_BAD_REQUEST)
+
+            diff_days = (ed - sd).days + 1
+
+            # メーター指定なしの場合は1日のみ許可
+            if not meter_id and diff_days > 1:
+                return Response({'error': '全メーター指定時は1日のみダウンロード可能です'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # メーター個別指定時は最大40日
+            if meter_id and diff_days > 40:
+                return Response({'error': '期間は最大40日間まで指定できます'}, status=status.HTTP_400_BAD_REQUEST)
+
         readings = MeterReading.objects.select_related('meter').order_by('-timestamp')
-        
-        if request.GET.get('meter_id'):
-            readings = readings.filter(meter_id=request.GET['meter_id'])
-        if request.GET.get('start_date'):
-            readings = readings.filter(timestamp__date__gte=request.GET['start_date'])
-        if request.GET.get('end_date'):
-            readings = readings.filter(timestamp__date__lte=request.GET['end_date'])
-        
-        readings = readings[:10000]
-        
+
+        if meter_id:
+            readings = readings.filter(meter_id=meter_id)
+        if start_date:
+            readings = readings.filter(timestamp__date__gte=start_date)
+        if end_date:
+            readings = readings.filter(timestamp__date__lte=end_date)
+
         response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         response['Content-Disposition'] = f'attachment; filename="readings_{timezone.now().strftime("%Y%m%d")}.csv"'
-        
+
         writer = csv.writer(response)
         writer.writerow(['メーターID', '計測日時', '種別', '発電量(kWh)', '逆潮流(kWh)', '買電(kWh)', '売電(kWh)', '受信日時'])
-        
-        for r in readings:
+
+        for r in readings.iterator(chunk_size=2000):
             writer.writerow([
                 r.meter.meter_id,
                 r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
@@ -98,7 +123,7 @@ class ReadingExportView(APIView):
                 r.route_b_export_kwh or '',
                 r.received_at.strftime('%Y-%m-%d %H:%M:%S'),
             ])
-        
+
         return response
 
 
@@ -170,28 +195,55 @@ class DailySummaryExportView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        from datetime import datetime
+
+        meter_id = request.GET.get('meter_id')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # 期間バリデーション
+        if start_date and end_date:
+            try:
+                sd = datetime.strptime(start_date, '%Y-%m-%d').date()
+                ed = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({'error': '日付形式が不正です'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if sd > ed:
+                return Response({'error': '開始日は終了日以前を指定してください'}, status=status.HTTP_400_BAD_REQUEST)
+
+            diff_days = (ed - sd).days + 1
+
+            # メーター指定なしの場合は最大31日（1ヶ月想定）
+            if not meter_id and diff_days > 31:
+                return Response({'error': '全メーター指定時は最大1ヶ月までダウンロード可能です'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # メーター個別指定時は最大40日
+            if meter_id and diff_days > 40:
+                return Response({'error': '期間は最大40日間まで指定できます'}, status=status.HTTP_400_BAD_REQUEST)
+
         summaries = DailySummary.objects.select_related('meter').order_by('-date')
-        
-        if request.GET.get('meter_id'):
-            summaries = summaries.filter(meter_id=request.GET['meter_id'])
-        if request.GET.get('start_date'):
-            summaries = summaries.filter(date__gte=request.GET['start_date'])
-        if request.GET.get('end_date'):
-            summaries = summaries.filter(date__lte=request.GET['end_date'])
-        
+
+        if meter_id:
+            summaries = summaries.filter(meter_id=meter_id)
+        if start_date:
+            summaries = summaries.filter(date__gte=start_date)
+        if end_date:
+            summaries = summaries.filter(date__lte=end_date)
+
         response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         response['Content-Disposition'] = f'attachment; filename="daily_{timezone.now().strftime("%Y%m%d")}.csv"'
-        
+
         writer = csv.writer(response)
         writer.writerow(['メーターID', '日付', '発電量(kWh)', '売電量(kWh)', '自家消費量(kWh)', '買電量(kWh)', 'レコード数'])
-        
-        for s in summaries:
+
+        for s in summaries.iterator(chunk_size=2000):
             writer.writerow([
                 s.meter.meter_id, s.date.strftime('%Y-%m-%d'),
                 s.generation_kwh or '', s.export_kwh or '', s.self_consumption_kwh or '',
                 s.grid_import_kwh or '', s.record_count
             ])
-        
+
         return response
 
 

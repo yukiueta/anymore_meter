@@ -353,7 +353,7 @@ export default {
       
       deleting.value = true
       try {
-        await axios.delete('/api/billing/delete/', {
+        await axios.delete('/api/billing/calendar/delete/', {
           params: {
             zone: deleteTarget.value.zone,
             fiscal_year: deleteTarget.value.fiscal_year
@@ -382,7 +382,7 @@ export default {
           params.fiscal_year = selectedItem.value.fiscal_year
         }
         
-        const response = await axios.get('/api/billing/export/', {
+        const response = await axios.get('/api/billing/calendar/export/', {
           params,
           responseType: 'blob'
         })

@@ -201,19 +201,49 @@
             </select>
           </div>
 
-          <!-- 30分データ: 日選択 -->
-          <div v-if="exportForm.type === 'readings'" class="am-form-group">
-            <label class="am-label">対象日 <span class="text-red-500">*</span></label>
-            <input type="date" v-model="exportForm.date" class="am-input" />
-            <div class="am-form-hint">30分データは1日単位でダウンロードできます</div>
-          </div>
+          <!-- 30分データ -->
+          <template v-if="exportForm.type === 'readings'">
+            <!-- メーター個別選択時: 期間選択 -->
+            <template v-if="exportForm.meter_id">
+              <div class="am-form-group">
+                <label class="am-label">開始日 <span class="text-red-500">*</span></label>
+                <input type="date" v-model="exportForm.start_date" class="am-input" />
+              </div>
+              <div class="am-form-group">
+                <label class="am-label">終了日 <span class="text-red-500">*</span></label>
+                <input type="date" v-model="exportForm.end_date" class="am-input" />
+                <div class="am-form-hint">最大40日間まで指定できます</div>
+              </div>
+            </template>
+            <!-- 全メーター時: 1日のみ -->
+            <div v-else class="am-form-group">
+              <label class="am-label">対象日 <span class="text-red-500">*</span></label>
+              <input type="date" v-model="exportForm.date" class="am-input" />
+              <div class="am-form-hint">全メーター選択時は1日単位でダウンロードできます</div>
+            </div>
+          </template>
 
-          <!-- 日次集計: 月選択 -->
-          <div v-if="exportForm.type === 'daily'" class="am-form-group">
-            <label class="am-label">対象月 <span class="text-red-500">*</span></label>
-            <input type="month" v-model="exportForm.month" class="am-input" />
-            <div class="am-form-hint">日次集計は1ヶ月単位でダウンロードできます</div>
-          </div>
+          <!-- 日次集計 -->
+          <template v-if="exportForm.type === 'daily'">
+            <!-- メーター個別選択時: 期間選択 -->
+            <template v-if="exportForm.meter_id">
+              <div class="am-form-group">
+                <label class="am-label">開始日 <span class="text-red-500">*</span></label>
+                <input type="date" v-model="exportForm.start_date" class="am-input" />
+              </div>
+              <div class="am-form-group">
+                <label class="am-label">終了日 <span class="text-red-500">*</span></label>
+                <input type="date" v-model="exportForm.end_date" class="am-input" />
+                <div class="am-form-hint">最大40日間まで指定できます</div>
+              </div>
+            </template>
+            <!-- 全メーター時: 1ヶ月のみ -->
+            <div v-else class="am-form-group">
+              <label class="am-label">対象月 <span class="text-red-500">*</span></label>
+              <input type="month" v-model="exportForm.month" class="am-input" />
+              <div class="am-form-hint">全メーター選択時は1ヶ月単位でダウンロードできます</div>
+            </div>
+          </template>
 
           <!-- 月次集計: 年選択 -->
           <div v-if="exportForm.type === 'monthly'" class="am-form-group">
@@ -286,7 +316,9 @@ export default {
       meter_id: '',
       date: today,
       month: currentMonth,
-      year: new Date().getFullYear()
+      year: new Date().getFullYear(),
+      start_date: '',
+      end_date: ''
     })
 
     const yearOptions = computed(() => {
@@ -492,65 +524,122 @@ export default {
 
     const exportCsv = async () => {
       exportError.value = ''
-      
-      if (exportForm.value.type === 'readings' && !exportForm.value.date) {
-        exportError.value = '対象日を選択してください'
-        return
-      }
-      if (exportForm.value.type === 'daily' && !exportForm.value.month) {
-        exportError.value = '対象月を選択してください'
-        return
+
+      const hasMeter = !!exportForm.value.meter_id
+      const type = exportForm.value.type
+
+      // バリデーション
+      if (type === 'readings') {
+        if (hasMeter) {
+          if (!exportForm.value.start_date || !exportForm.value.end_date) {
+            exportError.value = '開始日と終了日を選択してください'
+            return
+          }
+          if (exportForm.value.start_date > exportForm.value.end_date) {
+            exportError.value = '開始日は終了日以前を選択してください'
+            return
+          }
+          const diffDays = Math.floor(
+            (new Date(exportForm.value.end_date) - new Date(exportForm.value.start_date)) / (1000 * 60 * 60 * 24)
+          ) + 1
+          if (diffDays > 40) {
+            exportError.value = '期間は最大40日間まで指定できます'
+            return
+          }
+        } else {
+          if (!exportForm.value.date) {
+            exportError.value = '対象日を選択してください'
+            return
+          }
+        }
+      } else if (type === 'daily') {
+        if (hasMeter) {
+          if (!exportForm.value.start_date || !exportForm.value.end_date) {
+            exportError.value = '開始日と終了日を選択してください'
+            return
+          }
+          if (exportForm.value.start_date > exportForm.value.end_date) {
+            exportError.value = '開始日は終了日以前を選択してください'
+            return
+          }
+          const diffDays = Math.floor(
+            (new Date(exportForm.value.end_date) - new Date(exportForm.value.start_date)) / (1000 * 60 * 60 * 24)
+          ) + 1
+          if (diffDays > 40) {
+            exportError.value = '期間は最大40日間まで指定できます'
+            return
+          }
+        } else {
+          if (!exportForm.value.month) {
+            exportError.value = '対象月を選択してください'
+            return
+          }
+        }
       }
 
       exporting.value = true
-      
+
       try {
         const params = {}
-        if (exportForm.value.meter_id) {
+        if (hasMeter) {
           params.meter_id = exportForm.value.meter_id
         }
-        
-        if (exportForm.value.type === 'readings') {
-          params.start_date = exportForm.value.date
-          params.end_date = exportForm.value.date
-        } else if (exportForm.value.type === 'daily') {
-          const [year, month] = exportForm.value.month.split('-')
-          const lastDay = new Date(year, month, 0).getDate()
-          params.start_date = `${exportForm.value.month}-01`
-          params.end_date = `${exportForm.value.month}-${String(lastDay).padStart(2, '0')}`
+
+        if (type === 'readings') {
+          if (hasMeter) {
+            params.start_date = exportForm.value.start_date
+            params.end_date = exportForm.value.end_date
+          } else {
+            params.start_date = exportForm.value.date
+            params.end_date = exportForm.value.date
+          }
+        } else if (type === 'daily') {
+          if (hasMeter) {
+            params.start_date = exportForm.value.start_date
+            params.end_date = exportForm.value.end_date
+          } else {
+            const [year, month] = exportForm.value.month.split('-')
+            const lastDay = new Date(year, month, 0).getDate()
+            params.start_date = `${exportForm.value.month}-01`
+            params.end_date = `${exportForm.value.month}-${String(lastDay).padStart(2, '0')}`
+          }
         } else {
           params.year = exportForm.value.year
         }
-        
-        const response = await axios.get(exportEndpoints[exportForm.value.type], {
+
+        const response = await axios.get(exportEndpoints[type], {
           params,
           responseType: 'blob'
         })
-        
+
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
         link.href = url
-        
+
         let dateSuffix = ''
-        if (exportForm.value.type === 'readings') {
-          dateSuffix = exportForm.value.date.replace(/-/g, '')
-        } else if (exportForm.value.type === 'daily') {
-          dateSuffix = exportForm.value.month.replace('-', '')
+        if (type === 'readings') {
+          dateSuffix = hasMeter
+            ? `${exportForm.value.start_date.replace(/-/g, '')}_${exportForm.value.end_date.replace(/-/g, '')}`
+            : exportForm.value.date.replace(/-/g, '')
+        } else if (type === 'daily') {
+          dateSuffix = hasMeter
+            ? `${exportForm.value.start_date.replace(/-/g, '')}_${exportForm.value.end_date.replace(/-/g, '')}`
+            : exportForm.value.month.replace('-', '')
         } else {
           dateSuffix = String(exportForm.value.year)
         }
-        
-        const meterSuffix = exportForm.value.meter_id 
+
+        const meterSuffix = hasMeter
           ? meterOptions.value.find(m => m.id === exportForm.value.meter_id)?.meter_id || 'unknown'
           : 'all'
-        
-        link.setAttribute('download', `${exportForm.value.type}_${meterSuffix}_${dateSuffix}.csv`)
-        
+
+        link.setAttribute('download', `${type}_${meterSuffix}_${dateSuffix}.csv`)
+
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
-        
+
         showExportModal.value = false
       } catch (error) {
         console.error(error)
@@ -572,6 +661,12 @@ export default {
       if (val) {
         exportForm.value.type = currentTab.value
         exportError.value = ''
+        // 期間選択のデフォルト値（直近7日）
+        const todayDate = new Date()
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 6)
+        exportForm.value.end_date = todayDate.toISOString().slice(0, 10)
+        exportForm.value.start_date = weekAgo.toISOString().slice(0, 10)
       }
     })
 
