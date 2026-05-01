@@ -70,7 +70,7 @@ class MeterAssignment(models.Model):
     zone = models.IntegerField(choices=ZONE_CHOICES, null=True, blank=True, verbose_name='電力管轄')
     base_billing_day = models.CharField(max_length=2, blank=True, default='', verbose_name='基準検針日')
     
-    start_date = models.DateField(verbose_name='開始日')
+    start_date = models.DateField(null=True, blank=True, verbose_name='開始日')
     end_date = models.DateField(null=True, blank=True, verbose_name='終了日')
     contract_capacity = models.FloatField(default=0, null=True, blank=True, verbose_name='PV容量(kW)')
     synced_at = models.DateTimeField(null=True, blank=True, verbose_name='最終同期日時') 

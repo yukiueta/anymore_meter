@@ -208,27 +208,29 @@ class MeterAssignView(APIView):
         project_id = request.data.get('project_id')
         if not project_id:
             return Response({'error': 'project_id required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        start_date = request.data.get('start_date', timezone.now().date())
 
-        # 既存の紐付けを終了
+        # 空文字列はNoneに正規化（DBにNULL保存）
+        start_date = request.data.get('start_date') or None
+
+        # 既存の紐付けを終了（end_dateには必ず日付が必要なので今日を入れる）
         MeterAssignment.objects.filter(
             meter=meter,
             end_date__isnull=True
-        ).update(end_date=start_date)
+        ).update(end_date=start_date or timezone.now().date())
 
         # 新規紐付け作成
         assignment = MeterAssignment.objects.create(
             meter=meter,
             project_id=project_id,
             project_name=request.data.get('project_name', ''),
-            zone=request.data.get('zone'),
+            zone=request.data.get('zone') or None,
             base_billing_day=request.data.get('base_billing_day', ''),
             contract_capacity=request.data.get('contract_capacity', 0) or 0,
             start_date=start_date
         )
 
         return Response(MeterAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
+
 
 class MeterUnassignView(APIView):
     permission_classes = [IsAuthenticated]
@@ -239,7 +241,7 @@ class MeterUnassignView(APIView):
         except Meter.DoesNotExist:
             return Response({'error': 'not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        end_date = request.data.get('end_date', timezone.now().date())
+        end_date = request.data.get('end_date') or timezone.now().date()
         updated = MeterAssignment.objects.filter(
             meter=meter,
             end_date__isnull=True
@@ -267,9 +269,10 @@ class MeterAssignmentUpdateView(APIView):
 
         assignment.project_id = request.data.get('project_id', assignment.project_id)
         assignment.project_name = request.data.get('project_name', assignment.project_name)
-        assignment.zone = request.data.get('zone', assignment.zone)
-        assignment.base_billing_day = request.data.get('base_billing_day', assignment.base_billing_day)
-        assignment.start_date = request.data.get('start_date', assignment.start_date)
+        assignment.zone = request.data.get('zone') or None
+        assignment.base_billing_day = request.data.get('base_billing_day', assignment.base_billing_day) or ''
+        if 'start_date' in request.data:
+            assignment.start_date = request.data['start_date'] or None
         if 'end_date' in request.data:
             assignment.end_date = request.data['end_date'] or None
         assignment.save()

@@ -138,7 +138,10 @@
                 <td>{{ a.base_billing_day || '-' }}</td>
                 <td>{{ a.contract_capacity ? a.contract_capacity + 'kW' : '-' }}</td>
                 <td>
-                  {{ formatDate(a.start_date) }} 〜 {{ a.end_date ? formatDate(a.end_date) : '現在' }}
+                  <template v-if="!a.start_date && !a.end_date">-</template>
+                  <template v-else>
+                    {{ a.start_date ? formatDate(a.start_date) : '未定' }} 〜 {{ a.end_date ? formatDate(a.end_date) : '現在' }}
+                  </template>
                   <span v-if="!a.end_date" class="am-badge am-badge-success ml-2">アクティブ</span>
                 </td>
                 <td>
