@@ -12,8 +12,8 @@ SECRET_KEY = config('SECRET_KEY')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 CORS_ALLOWED_ORIGINS = [
-    "https://meter-dev.anymore.co.jp",
-    "https://mypage-dev.anymore.co.jp",  # 修正
+    "http://meter-dev.anymore.co.jp",
+    "http://mypage-dev.anymore.co.jp",
 ]
 
 CACHES = {
@@ -77,8 +77,8 @@ MEDIA_URL = f'https://s3.{AWS_S3_REGION_NAME}.amazonaws.com/{AWS_STORAGE_BUCKET_
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATIC_URL = f'https://s3.{AWS_S3_REGION_NAME}.amazonaws.com/{AWS_STORAGE_BUCKET_NAME}/static/'
 
-API_URL = 'https://meter-dev.anymore.co.jp/'
-FRONT_URL = 'https://meter-dev.anymore.co.jp/'
+API_URL = 'http://meter-dev.anymore.co.jp/'
+FRONT_URL = 'http://meter-dev.anymore.co.jp/'
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_BROKER_URL = REDIS_URL
