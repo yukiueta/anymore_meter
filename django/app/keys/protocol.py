@@ -27,6 +27,9 @@ PACKET_TYPE_KEY_EXCHANGE = 0b0101 # 鍵交換
 PACKET_TYPE_MULTI = 0b1010        # マルチパケット
 PACKET_TYPE_EVENT = 0b1011        # イベントログ
 
+# 「値なし」を示すセンチネル値（0xFFFFFFFE 以上）
+INVALID_UINT32 = 0xFFFFFFFE
+
 
 class MessageParser:
     """C2S電文パーサー"""
@@ -58,6 +61,14 @@ class MessageParser:
     
     def read_uint32_be(self) -> int:
         return struct.unpack('>I', self.read_bytes(4))[0]
+
+    def read_kwh(self):
+        """4byte積算値を0.01kWh単位でDecimal化。
+        0xFFFFFFFE / 0xFFFFFFFF は「値なし」を示すためNoneを返す。"""
+        raw = self.read_uint32_be()
+        if raw >= INVALID_UINT32:
+            return None
+        return Decimal(raw) / 100
     
     def read_ascii(self, n: int) -> str:
         return self.read_bytes(n).decode('ascii', errors='replace').rstrip('\x00')
@@ -119,21 +130,25 @@ class MessageParser:
         
         # タイムスタンプ (Unix timestamp, 4 bytes, big endian)
         unix_ts = self.read_uint32_be()
-        try:
-            timestamp = datetime.fromtimestamp(unix_ts)
-        except (ValueError, OSError):
+        if unix_ts >= INVALID_UINT32:
+            logger.warning(f'Invalid timestamp sentinel in interval data: {unix_ts}')
             timestamp = None
+        else:
+            try:
+                timestamp = datetime.fromtimestamp(unix_ts)
+            except (ValueError, OSError):
+                timestamp = None
         
         # 電力データ（4bytes each, big endian, unit: 0.01kWh）
-        import_kwh = Decimal(self.read_uint32_be()) / 100
-        export_kwh = Decimal(self.read_uint32_be()) / 100
+        import_kwh = self.read_kwh()
+        export_kwh = self.read_kwh()
         
         # Pulse count (4 bytes) - 通常は 0xFFFFFFFE
         pulse_count = self.read_uint32_be()
         
         # Route-B データ
-        route_b_import_kwh = Decimal(self.read_uint32_be()) / 100
-        route_b_export_kwh = Decimal(self.read_uint32_be()) / 100
+        route_b_import_kwh = self.read_kwh()
+        route_b_export_kwh = self.read_kwh()
         
         return {
             **header,
@@ -157,7 +172,7 @@ class MessageParser:
             timestamp = None
         
         # Import energy
-        import_kwh = Decimal(self.read_uint32_be()) / 100 if self.pos + 4 <= len(self.data) else None
+        import_kwh = self.read_kwh() if self.pos + 4 <= len(self.data) else None
         
         # Pulse count
         pulse_count = self.read_uint32_be() if self.pos + 4 <= len(self.data) else None
@@ -207,16 +222,21 @@ class MessageParser:
             if unix_ts == 0:
                 break
             
+            # 不正なタイムスタンプはレコードごとスキップ
+            if unix_ts >= INVALID_UINT32:
+                logger.warning(f'Invalid timestamp sentinel in multi-interval: {unix_ts}')
+                continue
+            
             try:
                 timestamp = datetime.fromtimestamp(unix_ts)
             except (ValueError, OSError):
                 timestamp = None
             
-            import_kwh = Decimal(self.read_uint32_be()) / 100
-            export_kwh = Decimal(self.read_uint32_be()) / 100
+            import_kwh = self.read_kwh()
+            export_kwh = self.read_kwh()
             pulse_count = self.read_uint32_be()
-            route_b_import_kwh = Decimal(self.read_uint32_be()) / 100
-            route_b_export_kwh = Decimal(self.read_uint32_be()) / 100
+            route_b_import_kwh = self.read_kwh()
+            route_b_export_kwh = self.read_kwh()
             
             readings.append({
                 'timestamp': timestamp,

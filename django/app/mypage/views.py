@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -78,34 +79,37 @@ class MypageReadingsView(CustomerAuthMixin, APIView):
 
     def _get_daily_data(self, meter, target_date):
         """日次: 時間ごとのデータ（24時間）"""
-        start = datetime.combine(target_date, datetime.min.time())
+        start = timezone.make_aware(datetime.combine(target_date, datetime.min.time()))
         end = start + timedelta(days=1)
 
+        # 翌日00:00まで含める（23:30〜24:00の区間を取りこぼさないため）
         readings = list(MeterReading.objects.filter(
             meter=meter,
             timestamp__gte=start,
-            timestamp__lt=end,
+            timestamp__lte=end,
             reading_type='interval'
         ).order_by('timestamp'))
 
         hourly_data = {}
         prev = None
-        
-        for r in readings:
-            hour = r.timestamp.hour
-            if hour not in hourly_data:
-                hourly_data[hour] = {'gen': Decimal('0'), 'exp': Decimal('0')}
-            
-            if prev and r.import_kwh is not None and prev.import_kwh is not None:
-                diff = r.import_kwh - prev.import_kwh
-                if diff > 0:
-                    hourly_data[hour]['gen'] += diff
 
-            if prev and r.export_kwh is not None and prev.export_kwh is not None:
-                diff = r.export_kwh - prev.export_kwh
-                if diff > 0:
-                    hourly_data[hour]['exp'] += diff
-            
+        for r in readings:
+            if prev is not None:
+                # 差分は prev〜r 区間の実績。区間始端(prev)のJST時刻に帰属させる
+                hour = timezone.localtime(prev.timestamp).hour
+                if hour not in hourly_data:
+                    hourly_data[hour] = {'gen': Decimal('0'), 'exp': Decimal('0')}
+
+                if r.import_kwh is not None and prev.import_kwh is not None:
+                    diff = r.import_kwh - prev.import_kwh
+                    if diff > 0:
+                        hourly_data[hour]['gen'] += diff
+
+                if r.route_b_export_kwh is not None and prev.route_b_export_kwh is not None:
+                    diff = r.route_b_export_kwh - prev.route_b_export_kwh
+                    if diff > 0:
+                        hourly_data[hour]['exp'] += diff
+
             prev = r
 
         chart = []

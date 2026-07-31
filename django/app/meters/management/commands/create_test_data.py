@@ -353,7 +353,7 @@ class Command(BaseCommand):
                 **result
             )
 
-            prev_used_value = result['curr_used_value']
+            prev_used_value = result['curr_used_import']
             count += 1
 
             method = result['deemed_method']
@@ -391,8 +391,8 @@ class Command(BaseCommand):
             'curr_actual_value': curr_actual,
             'mid_actual_value': None,
             'mid_actual_date': None,
-            'prev_used_value': Decimal('0'),
-            'curr_used_value': Decimal('0'),
+            'prev_used_import': Decimal('0'),
+            'curr_used_import': Decimal('0'),
             'actual_kwh': Decimal('0'),
             'deemed_kwh': Decimal('0'),
             'total_kwh': Decimal('0'),
@@ -403,17 +403,17 @@ class Command(BaseCommand):
 
         # 前回値を決定
         if is_first:
-            result['prev_used_value'] = Decimal('0')
+            result['prev_used_import'] = Decimal('0')
         elif prev_actual is not None:
-            result['prev_used_value'] = prev_actual
+            result['prev_used_import'] = prev_actual
         else:
-            result['prev_used_value'] = prev_used_value
+            result['prev_used_import'] = prev_used_value
 
         # パターン判定
         if curr_actual is not None:
             # 実測可能
-            result['curr_used_value'] = curr_actual
-            result['actual_kwh'] = curr_actual - result['prev_used_value']
+            result['curr_used_import'] = curr_actual
+            result['actual_kwh'] = curr_actual - result['prev_used_import']
             result['deemed_kwh'] = Decimal('0')
             result['total_kwh'] = result['actual_kwh']
             result['deemed_method'] = 'none'
@@ -429,11 +429,11 @@ class Command(BaseCommand):
             result['mid_actual_value'] = mid_actual
             result['mid_actual_date'] = mid_date
 
-            actual_kwh = mid_actual - result['prev_used_value']
+            actual_kwh = mid_actual - result['prev_used_import']
             remaining_days = (period_end - mid_date).days
             deemed_kwh = DEEMED_DAILY_KWH * remaining_days
 
-            result['curr_used_value'] = mid_actual + deemed_kwh
+            result['curr_used_import'] = mid_actual + deemed_kwh
             result['actual_kwh'] = actual_kwh
             result['deemed_kwh'] = deemed_kwh
             result['total_kwh'] = actual_kwh + deemed_kwh
@@ -442,7 +442,7 @@ class Command(BaseCommand):
 
         else:
             # 月次みなし
-            result['curr_used_value'] = result['prev_used_value'] + DEEMED_MONTHLY_KWH
+            result['curr_used_import'] = result['prev_used_import'] + DEEMED_MONTHLY_KWH
             result['actual_kwh'] = Decimal('0')
             result['deemed_kwh'] = DEEMED_MONTHLY_KWH
             result['total_kwh'] = DEEMED_MONTHLY_KWH

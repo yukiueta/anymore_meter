@@ -107,6 +107,12 @@ def _aggregate_daily_for_meter(meter, target_date):
         timestamp__date=target_date
     ).count()
 
+    # 当日の最初のレコード（前日データが無い場合の基準）
+    first_reading = MeterReading.objects.filter(
+        meter=meter,
+        timestamp__date=target_date
+    ).order_by('timestamp').first()
+
     # 差分計算（累積値から増分を算出）
     def delta(curr, prev, field):
         curr_val = getattr(curr, field) if curr else None
@@ -114,7 +120,10 @@ def _aggregate_daily_for_meter(meter, target_date):
         if curr_val is None:
             return None
         if prev_val is None:
-            return curr_val  # 初回は累積値そのまま
+            # 前日データ無し: 当日初回レコードを基準に日内増分を算出
+            prev_val = getattr(first_reading, field) if first_reading else None
+            if prev_val is None:
+                return None
         d = curr_val - prev_val
         return max(d, Decimal('0'))
 
